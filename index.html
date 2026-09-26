@@ -1,0 +1,1276 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Registro de ecografías</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="xlsx.full.min.js"></script>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Ecografías">
+<meta name="theme-color" content="#EDF0F2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<style>
+:root{
+  --bg:#EDF0F2; --surface:#FFFFFF; --surface-2:#F5F7F8; --ink:#16202A; --muted:#5A6773; --line:#D6DCE1;
+  --g-lo:#2B3137; --g-hi:#CDD3D8; --red:#C22F39; --blue:#2356B0; --ok:#1E7549; --warn:#9A5800;
+  --focus:#2356B0; --shadow:0 1px 2px rgba(22,32,42,.06);
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#000000; --surface:#111418; --surface-2:#1A1F25; --ink:#E4E9ED; --muted:#96A3AE; --line:#2A333C;
+    --g-lo:#3A4148; --g-hi:#CDD3D8; --red:#E25560; --blue:#6390E4; --ok:#4CC08A; --warn:#E3A74A; --focus:#6390E4;
+    --shadow:none; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#000000; --surface:#111418; --surface-2:#1A1F25; --ink:#E4E9ED; --muted:#96A3AE; --line:#2A333C;
+  --g-lo:#3A4148; --g-hi:#CDD3D8; --red:#E25560; --blue:#6390E4; --ok:#4CC08A; --warn:#E3A74A; --focus:#6390E4;
+  --shadow:none; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.wrap{max-width:1040px;margin:0 auto;padding:18px 18px 64px}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.brand{display:flex;align-items:center;gap:12px}
+.probe{width:34px;height:34px;border-radius:9px;background:
+  conic-gradient(from 210deg at 50% 100%, transparent 0 0, var(--g-lo) 0 60deg, transparent 60deg 360deg);
+  position:relative;overflow:hidden;border:1px solid var(--line);background-color:var(--surface)}
+.probe::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(255,255,255,.18) 36%,transparent 38%,transparent 60%,rgba(255,255,255,.12) 61%,transparent 63%)}
+.brand h1{font-size:21px;font-weight:700;letter-spacing:-.01em;margin:0;line-height:1.1}
+.brand small{display:block;color:var(--muted);font-size:13px;font-weight:500}
+nav.tabs{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+nav.tabs button{border:0;background:transparent;padding:7px 14px;border-radius:7px;cursor:pointer;font-weight:600;color:var(--muted)}
+nav.tabs button[aria-selected="true"]{background:var(--ink);color:var(--surface)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 13px;cursor:pointer;font-weight:500;font-size:14px}
+.chip[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--surface)}
+.chip.add{border-style:dashed;color:var(--muted)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:8px 14px;cursor:pointer;font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:7px;box-shadow:var(--shadow)}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.btn.danger{color:var(--red);border-color:color-mix(in srgb,var(--red) 40%,var(--line))}
+.btn.ghost{background:transparent;box-shadow:none}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 20px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow);margin-bottom:16px}
+.panel h2{font-size:16px;margin:0 0 12px;font-weight:700}
+.panel h3{font-size:14px;margin:18px 0 8px;font-weight:700}
+.monthnav{display:flex;align-items:center;gap:6px}
+.monthnav strong{min-width:150px;text-align:center;font-size:17px}
+.iconbtn{border:1px solid var(--line);background:var(--surface);width:34px;height:34px;border-radius:9px;cursor:pointer;font-size:16px;line-height:1}
+.hero{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:end;margin:6px 0 16px}
+.big{font-size:44px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.big-label{color:var(--muted);font-size:13px;font-weight:500;margin-top:4px}
+.money{font-size:28px;font-weight:700;letter-spacing:-.02em;text-align:right;line-height:1.1}
+.split{height:14px;border-radius:4px;display:flex;overflow:hidden;background:var(--surface-2);border:1px solid var(--line)}
+.split .g{background:linear-gradient(90deg,var(--g-lo),var(--g-hi))}
+.split .d{background:linear-gradient(90deg,var(--red) 0 50%,var(--blue) 50% 100%)}
+.legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px;font-size:13px;color:var(--muted)}
+.sw{display:inline-block;width:18px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:6px}
+.sw.g{background:linear-gradient(90deg,var(--g-lo),var(--g-hi))}
+.sw.d{background:linear-gradient(90deg,var(--red) 0 50%,var(--blue) 50% 100%)}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:600;color:var(--muted);font-size:13px}
+td.num,th.num{text-align:right}
+tr.group td{font-weight:700;background:var(--surface-2);border-bottom:1px solid var(--line)}
+tr.total td{font-weight:700;border-bottom:0}
+tr.click{cursor:pointer}
+tr.click:hover td{background:var(--surface-2)}
+tr.current td{background:color-mix(in srgb,var(--blue) 8%,transparent)}
+.warn{color:var(--warn);font-size:13px;font-weight:500}
+.note{color:var(--muted);font-size:13px}
+.empty{text-align:center;padding:36px 12px;color:var(--muted)}
+.empty strong{display:block;color:var(--ink);font-size:17px;margin-bottom:6px}
+.day{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--surface);margin-bottom:10px}
+.day-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+.day-title{font-weight:700;font-size:16px}
+.tag{display:inline-block;font-size:12px;font-weight:600;border:1px solid var(--line);border-radius:6px;padding:1px 7px;margin-left:8px;color:var(--muted);vertical-align:1px}
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.pill{font-size:13px;padding:3px 9px;border-radius:6px;background:var(--surface-2);border:1px solid var(--line)}
+.pill.d{border-left:4px solid var(--red);box-shadow:inset 3px 0 0 var(--blue)}
+.pill.g{border-left:4px solid var(--g-lo)}
+.day-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.month-sep{margin:22px 0 10px;font-size:14px;font-weight:700;color:var(--muted)}
+.grp-head{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;margin:14px 0 6px}
+.exrow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)}
+.exrow:last-child{border-bottom:0}
+.exname{font-size:14px}
+.exname small{display:block;color:var(--muted);font-size:12px}
+.stepper{display:flex;align-items:center;gap:4px}
+.stepper button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);cursor:pointer;font-size:18px;line-height:1}
+.stepper input{width:54px;height:34px;text-align:center;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.stepper input.has{border-color:var(--ink);font-weight:700}
+.price{width:130px;height:34px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);text-align:right}
+label.f{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:4px}
+.field{margin-bottom:12px}
+.field input[type=text],.field input[type=date],.field select,.field textarea{width:100%;height:38px;padding:0 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
+.field textarea{height:auto;min-height:220px;padding:10px;font-size:13px;line-height:1.45;resize:vertical}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:0 28px}
+.overlay{position:fixed;inset:0;background:rgba(10,14,18,.45);display:flex;align-items:flex-start;justify-content:center;padding:max(24px,env(safe-area-inset-top,0px)) 12px 24px;overflow-y:auto;z-index:20}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:16px;width:100%;max-width:640px;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.modal.wide{max-width:860px}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px}
+.modal-head h2{margin:0;font-size:18px}
+.modal-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap;position:sticky;bottom:-20px;background:var(--surface);padding:12px 0 4px;border-top:1px solid var(--line)}
+.modal-foot .sum{font-weight:700}
+.info{background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:13px;margin-bottom:12px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:10px;font-weight:600;font-size:14px;z-index:40;max-width:92vw}
+.toast.err{background:var(--red);color:#fff}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg label{padding:6px 12px;cursor:pointer;font-size:14px;font-weight:500}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:checked){background:var(--ink);color:var(--surface)}
+.seg label:has(input:focus-visible){outline:2px solid var(--focus);outline-offset:-2px}
+select.map{height:32px;border:1px solid var(--line);border-radius:7px;background:var(--surface);max-width:260px}
+select.map.none{border-color:var(--warn)}
+@media (max-width:720px){
+  .cols2,.row2,.row3{grid-template-columns:1fr}
+  .hero{grid-template-columns:1fr}
+  .money{text-align:left}
+  .big{font-size:38px}
+  nav.tabs{width:100%}
+  nav.tabs button{flex:1}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+.appicon{width:36px;height:36px;border-radius:9px;display:block}
+.status{font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:6px;background:none;border:0;padding:0;cursor:pointer;font-weight:500;text-align:left}
+span.status{cursor:default}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
+.dot.local{background:var(--warn)}
+.dot.err{background:var(--red)}
+.dot.busy{background:var(--blue);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.3}}
+.banner{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:color-mix(in srgb,var(--blue) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--blue) 35%,var(--line));border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:14px}
+.sel{height:36px;border:1px solid var(--line);border-radius:9px;background:var(--surface);padding:0 10px;min-width:200px}
+.sel.sm{min-width:140px}
+.txt{flex:1;width:100%;height:38px;padding:0 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
+td:first-child{white-space:normal}
+.rt{text-align:right}
+.check{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;margin-top:4px}
+.check input{width:18px;height:18px}
+.tasas{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.tasas label{display:flex;align-items:center;gap:6px;font-size:14px}
+.tasas span{width:40px;color:var(--muted)}
+.tasas input{width:62px;height:32px;border:1px solid var(--line);border-radius:7px;background:var(--surface);text-align:right;padding:0 6px}
+details.how{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--surface-2)}
+details.how summary{cursor:pointer;font-weight:600;font-size:14px}
+details.how ol{padding-left:20px;font-size:14px}
+details.how li{margin:6px 0}
+code{font-size:13px;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:0 4px}
+nav.tabs button{padding:7px 11px}
+@media (max-width:720px){nav.tabs button{padding:7px 4px;font-size:13px}.rt{text-align:left}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p class="note">Cargando…</p></div>
+<div id="modalRoot"></div>
+<script>
+"use strict";
+
+/* ---------- Catálogo ---------- */
+const EXAMS=[
+ {id:'abd',g:'gris',n:'Abdominal',s:'Abdominal'},
+ {id:'renal',g:'gris',n:'Renal',s:'Renal'},
+ {id:'pelv',g:'gris',n:'Pelviana masculina/femenina',s:'Pelviana'},
+ {id:'tir',g:'gris',n:'Tiroides / región cervical',s:'Tiroides/cervical'},
+ {id:'pb',g:'gris',n:'Partes blandas / musculoesquelética',s:'PB/MSK'},
+ {id:'enc',g:'gris',n:'Encefálica',s:'Encefálica'},
+ {id:'abpp',g:'gris',n:'Abdominopelviana pediátrica',s:'Abd-pelv ped'},
+ {id:'test',g:'gris',n:'Testicular',s:'Testicular'},
+ {id:'dcerv',g:'doppler',n:'Doppler cervical',s:'D cervical'},
+ {id:'dven1',g:'doppler',n:'Doppler venoso, una extremidad',s:'D venoso 1 ext'},
+ {id:'dven2',g:'doppler',n:'Doppler venoso, ambas extremidades',s:'D venoso 2 ext'},
+ {id:'dart1',g:'doppler',n:'Doppler arterial, una extremidad',s:'D arterial 1 ext'},
+ {id:'dart2',g:'doppler',n:'Doppler arterial, ambas extremidades',s:'D arterial 2 ext'},
+ {id:'dren',g:'doppler',n:'Doppler renal',s:'D renal'},
+ {id:'dhep',g:'doppler',n:'Doppler hepático',s:'D hepático'},
+ {id:'dtest',g:'doppler',n:'Doppler testicular',s:'D testicular'}
+];
+const EX=Object.fromEntries(EXAMS.map(e=>[e.id,e]));
+const GRIS=EXAMS.filter(e=>e.g==='gris'), DOP=EXAMS.filter(e=>e.g==='doppler');
+
+/* ---------- Utilidades ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clpFmt=new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0});
+const money=n=>clpFmt.format(Math.round(n||0));
+const intFmt=new Intl.NumberFormat('es-CL');
+const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const DIAS=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+const pad=n=>String(n).padStart(2,'0');
+const clone=o=>JSON.parse(JSON.stringify(o));
+const newId=()=>Math.random().toString(36).slice(2,10);
+function isoToDate(iso){const[y,m,d]=iso.split('-').map(Number);return new Date(y,m-1,d);}
+function dayTitle(iso){const d=isoToDate(iso);return cap(`${DIAS[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`);}
+function shortDay(iso){const d=isoToDate(iso);return `${cap(DIAS[d.getDay()].slice(0,3))} ${pad(d.getDate())}/${pad(d.getMonth()+1)}`;}
+function monthLabel(ym){const[y,m]=ym.split('-').map(Number);return cap(`${MESES[m-1]} ${y}`);}
+function todayISO(){const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
+function shiftYM(ym,k){let[y,m]=ym.split('-').map(Number);m+=k;while(m>12){m-=12;y++}while(m<1){m+=12;y--}return `${y}-${pad(m)}`;}
+function validISO(y,m,d){if(!(y>1990&&y<2100&&m>=1&&m<=12&&d>=1&&d<=31))return null;const t=new Date(y,m-1,d);if(t.getMonth()!==m-1)return null;return `${y}-${pad(m)}-${pad(d)}`;}
+function parseDate(v){
+  if(v==null||v==='')return null;
+  if(v instanceof Date&&!isNaN(v))return validISO(v.getFullYear(),v.getMonth()+1,v.getDate());
+  if(typeof v==='number'){
+    if(v>20000&&v<80000&&window.XLSX){const p=XLSX.SSF.parse_date_code(v);return p?validISO(p.y,p.m,p.d):null;}
+    return null;
+  }
+  const s=String(v).trim();let m;
+  if((m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/)))return validISO(+m[1],+m[2],+m[3]);
+  if((m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/))){let y=+m[3];if(y<100)y+=2000;return validISO(y,+m[2],+m[1]);}
+  if(/^\d{5}(\.\d+)?$/.test(s))return parseDate(Number(s));
+  return null;
+}
+function toNum(v){if(typeof v==='number')return v;const s=String(v??'').replace(/\s/g,'').replace(/\./g,'').replace(',','.');const n=parseFloat(s);return isFinite(n)?n:NaN;}
+function norm(s){return String(s??'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
+
+/* ---------- Reconocimiento de ecografías ---------- */
+function recognize(raw){
+  const s=' '+norm(raw)+' ';
+  if(!s.trim())return null;
+  if(/\b(tc|tac|tomografia computada|scanner|rm|rnm|resonancia|rx|radiografia|mamografia|pet|densitometria|angiotc)\b/.test(s))return null;
+  const dop=/doppler|duplex|eco ?color|\bcolor\b/.test(s);
+  const una=/unilateral|\bunica\b|\buna\b|derech|izquierd|\beid\b|\beii\b|\besd\b|\besi\b|\bmid\b|\bmii\b|\bmsd\b|\bmsi\b/.test(s);
+  const extrem=una&&/\be[is][di]\b|\bm[is][di]\b|extremidad|miembro|pierna|brazo/.test(s)||/extremidad|\beeii\b|\beess\b|\bmmii\b|\bmmss\b|miembro|pierna|brazo|\binferior|\bsuperior/.test(s);
+  const ambos=!una&&/ambas|bilateral|extremidades|\beeii\b|\beess\b|\bmmii\b|\bmmss\b|miembros|piernas|brazos|inferiores|superiores/.test(s);
+  const ven=/venos|\btvp\b|trombosis venosa|varic|safen/.test(s);
+  const art=/arteri|isquemi|claudica/.test(s);
+  if(dop||((ven||art)&&extrem)){
+    if(/testic|escrot|varicocele|torsion/.test(s))return 'dtest';
+    if(/cervic|carot|cuello|vertebral|supraaort|\btsa\b/.test(s))return 'dcerv';
+    if(extrem||((ven||art)&&!/renal|rinon|hepat|portal|higado/.test(s))){
+      if(art&&!ven)return ambos?'dart2':'dart1';
+      return ambos?'dven2':'dven1';
+    }
+    if(/renal|rinon|trasplante/.test(s))return 'dren';
+    if(/hepat|portal|higado|\btips\b|esplenoportal/.test(s))return 'dhep';
+    return null;
+  }
+  if(/testic|escrot/.test(s))return 'test';
+  if(/abdominopelvi|abdomino pelvi|abdomen y pelvis|abdominal y pelvi/.test(s))return 'abpp';
+  if(/encefal|cerebral|transfontan|cerebro|craneal/.test(s))return 'enc';
+  if(/pared abdominal|hernia|inguinal|partes blandas|musculo|\bmsk\b|osteoart|hombro|rodilla|tobillo|codo|muneca|\bmano\b|cadera|\bpie\b|tendon|tendin|ligament|subcutane|lipoma/.test(s))return 'pb';
+  if(/tiroid|paratiroid|cervical|cuello|parotid|salival|submandibular/.test(s))return 'tir';
+  if(/pelvi|ginecolog|transvaginal|endovaginal|utero|ovari|prostat|transrectal/.test(s))return 'pelv';
+  if(/renal|rinon|renovesical|vesical|vias urinarias|urinari/.test(s))return 'renal';
+  if(/abdom|hepat|higado|vesicula|biliar|pancrea|bazo|esplen/.test(s))return 'abd';
+  return null;
+}
+
+/* ---------- Versión ---------- */
+const APP_VERSION=3;
+
+/* ---------- Constantes nuevas ---------- */
+const TASAS_DEF={2020:10.75,2021:11.5,2022:12.25,2023:13,2024:13.75,2025:14.5,2026:15.25,2027:16,2028:17};
+const MSK=[
+ {id:'hombro',n:'Hombro'},{id:'codo',n:'Codo'},{id:'mano',n:'Muñeca y mano'},{id:'cadera',n:'Cadera e ingle'},
+ {id:'rodilla',n:'Rodilla'},{id:'pie',n:'Tobillo y pie'},{id:'musculo',n:'Músculo (desgarro, hematoma)'},
+ {id:'pared',n:'Pared abdominal y hernias'},{id:'superf',n:'Partes blandas superficiales (lesiones, colecciones)'}
+];
+const INICIO='2000-01-01';
+const pct=n=>`${String(Math.round(n*100)/100).replace('.',',')}%`;
+const hFmt=h=>`${String(Math.round(h*10)/10).replace('.',',')} h`;
+function parseHours(v){const n=parseFloat(String(v??'').replace(',','.'));return isFinite(n)&&n>0?Math.round(n*100)/100:0;}
+function fechaCorta(iso){if(iso===INICIO)return 'el inicio';const d=isoToDate(iso);return `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}`;}
+function shiftDay(iso,k){const d=isoToDate(iso);d.setDate(d.getDate()+k);return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
+
+/* ---------- Almacenamiento local ---------- */
+function cleanCounts(c){const o={};for(const[k,v]of Object.entries(c||{})){const n=Math.round(Number(v));if(EX[k]&&n>0)o[k]=n;}return o;}
+function cleanMsk(m){const o={};for(const[k,v]of Object.entries(m||{})){const n=Math.round(Number(v));if(MSK.some(x=>x.id===k)&&n>0)o[k]=n;}return o;}
+function normCentro(c){
+  const x=clone(c);
+  if(!Array.isArray(x.tarifas)||!x.tarifas.length)x.tarifas=[{desde:INICIO,precios:x.precios||{}}];
+  delete x.precios;
+  x.tarifas.forEach(t=>{if(!t.precios)t.precios={};});
+  x.tarifas.sort((a,b)=>a.desde<b.desde?-1:a.desde>b.desde?1:0);
+  if(x.boleta===undefined)x.boleta=true;
+  return x;
+}
+const LS_KEY='ecos.v2';
+const Store={
+  recs:{},pending:{},cursor:0,
+  settings:{url:'',token:'',device:'',lastSync:0,theme:'auto'},
+  centros:[],alias:{},days:[],tasas:{...TASAS_DEF},dayMap:{},
+  load(){
+    try{const r=localStorage.getItem(LS_KEY);if(r){const d=JSON.parse(r);this.recs=d.recs||{};this.pending=d.pending||{};this.cursor=d.cursor||0;Object.assign(this.settings,d.settings||{});}else this.migrateV1();}
+    catch(e){console.warn(e)}
+    if(!this.settings.device)this.settings.device=newId()+newId();
+    this.rebuild();this.persist();
+  },
+  migrateV1(){let d=null;try{d=JSON.parse(localStorage.getItem('ecos.v1')||'null');}catch(e){}if(d)this.importLegacy(d);},
+  importLegacy(d){
+    (d.config?.centros||[]).forEach((c,i)=>this.upsert('c:'+c.id,'centro',normCentro({id:c.id,nombre:c.nombre,precios:c.precios||{},orden:i})));
+    this.rebuild();
+    for(const m of Object.values(d.meses||{}))for(const[k,c]of Object.entries(m.entries||{})){const i=k.indexOf('_');this.setDay(k.slice(0,i),k.slice(i+1),c);}
+    for(const[k,v]of Object.entries(d.config?.alias||{}))this.setAlias(k,v);
+  },
+  persist(){try{localStorage.setItem(LS_KEY,JSON.stringify({recs:this.recs,pending:this.pending,cursor:this.cursor,settings:this.settings}));}catch(e){toast('No se pudo guardar en este dispositivo','err')}},
+  upsert(id,t,data,del=false){const prev=this.recs[id];const u=Math.max(Date.now(),prev?prev.u+1:0);this.recs[id]={id,t,d:del?null:clone(data),u,x:del?1:0};this.pending[id]=1;},
+  tomb(id){const r=this.recs[id];if(r&&!r.x)this.upsert(id,r.t,null,true);},
+  rebuild(){
+    const C=[],A={},base={},sumas={};let tasas={...TASAS_DEF};
+    for(const r of Object.values(this.recs)){
+      if(r.x||!r.d)continue;
+      if(r.t==='centro')C.push(normCentro(r.d));
+      else if(r.t==='alias')A[r.d.k]=r.d.v;
+      else if(r.t==='dia')base[r.d.cid+'_'+r.d.date]=r.d;
+      else if(r.t==='suma'){const k=r.d.cid+'_'+r.d.date;(sumas[k]=sumas[k]||[]).push(r);}
+      else if(r.t==='config'&&r.id==='cfg:ret'&&r.d.tasas)tasas={...TASAS_DEF,...r.d.tasas};
+    }
+    const map={};
+    for(const k of new Set([...Object.keys(base),...Object.keys(sumas)])){
+      const b=base[k],ss=sumas[k]||[];
+      const i=k.indexOf('_');const cid=k.slice(0,i),date=k.slice(i+1);
+      const counts={...(b?.counts||{})};
+      ss.forEach(s=>{for(const[e,n]of Object.entries(s.d.counts||{}))if(EX[e])counts[e]=(counts[e]||0)+Number(n);});
+      map[k]={cid,date,counts,horas:b?.horas||0,msk:b?.msk||{},sumas:ss.map(s=>s.id)};
+    }
+    C.sort((a,b)=>(a.orden??0)-(b.orden??0)||String(a.nombre).localeCompare(b.nombre));
+    this.centros=C;this.alias=A;this.tasas=tasas;this.dayMap=map;
+    this.days=Object.values(map).filter(d=>Object.keys(d.counts).length||d.horas).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  },
+  commit(){this.rebuild();this.persist();safeRender();Sync.soon();},
+  dayId:(cid,date)=>'d:'+cid+'_'+date,
+  getDay(cid,date){return this.dayMap[cid+'_'+date]||null;},
+  get(cid,date){const d=this.getDay(cid,date);return d&&Object.keys(d.counts).length?d.counts:null;},
+  setDay(cid,date,counts,extra){
+    const prev=this.getDay(cid,date);
+    const c=cleanCounts(counts);
+    const horas=extra&&'horas' in extra?parseHours(extra.horas):(prev?.horas||0);
+    let msk=cleanMsk(extra&&'msk' in extra?extra.msk:(prev?.msk||{}));
+    if(Object.values(msk).reduce((a,b)=>a+b,0)>(c.pb||0))msk={};
+    const id=this.dayId(cid,date);
+    if(Object.keys(c).length||horas){const d={cid,date,counts:c};if(horas)d.horas=horas;if(Object.keys(msk).length)d.msk=msk;this.upsert(id,'dia',d);}
+    else this.tomb(id);
+    (prev?.sumas||[]).forEach(s=>this.tomb(s));
+    this.rebuild();
+  },
+  saveCenter(c){this.upsert('c:'+c.id,'centro',normCentro(c));},
+  deleteCenter(cid){this.tomb('c:'+cid);Object.values(this.dayMap).filter(d=>d.cid===cid).forEach(d=>{this.tomb(this.dayId(cid,d.date));d.sumas.forEach(s=>this.tomb(s));});},
+  setAlias(k,v){this.upsert('a:'+k,'alias',{k,v});},
+  delAlias(k){this.tomb('a:'+k);},
+  setTasas(t){this.upsert('cfg:ret','config',{tasas:t});},
+  wipe(){Object.keys(this.recs).forEach(id=>this.tomb(id));},
+  entries(){return this.days;},
+  backupData(){return{app:'ecografias',version:3,exportado:new Date().toISOString(),recs:Object.values(this.recs).filter(r=>!r.x).map(r=>({id:r.id,t:r.t,d:r.d}))};},
+  restore(d,mode){
+    if(mode==='reemplazar')this.wipe();
+    if(Array.isArray(d.recs)){d.recs.forEach(r=>{if(r&&r.id&&r.t&&r.d)this.upsert(r.id,r.t,r.t==='centro'?normCentro(r.d):r.d);});}
+    else this.importLegacy(d);
+  }
+};
+const centro=id=>Store.centros.find(c=>c.id===id);
+
+/* ---------- Sincronización ---------- */
+const Sync={
+  busy:false,again:false,timer:null,state:'idle',err:'',
+  configured(){return !!(Store.settings.url&&Store.settings.token);},
+  soon(delay=2500){if(!this.configured())return;clearTimeout(this.timer);this.timer=setTimeout(()=>this.run(false),delay);},
+  async call(body){
+    const r=await fetch(Store.settings.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...body,token:Store.settings.token}),redirect:'follow'});
+    if(!r.ok)throw new Error('respuesta '+r.status);
+    let j;try{j=await r.json();}catch(e){throw new Error('la dirección no corresponde a la app');}
+    if(!j.ok)throw new Error(j.error||'error desconocido');
+    return j;
+  },
+  async run(manual){
+    if(!this.configured()){if(manual)toast('Configura la sincronización en Ajustes','err');return;}
+    if(this.busy){this.again=true;return;}
+    if(!navigator.onLine){this.state='offline';renderStatus();if(manual)toast('Sin conexión: los cambios se subirán cuando vuelva internet','err');return;}
+    this.busy=true;this.state='syncing';renderStatus();
+    try{
+      const ids=Object.keys(Store.pending);
+      const changes=ids.map(id=>Store.recs[id]).filter(Boolean);
+      const sentU={};changes.forEach(c=>sentU[c.id]=c.u);
+      const j=await this.call({action:'sync',since:Store.cursor,changes,device:Store.settings.device,version:APP_VERSION});
+      ids.forEach(id=>{if(!Store.recs[id]||Store.recs[id].u===sentU[id])delete Store.pending[id];});
+      let changed=false;
+      (j.records||[]).forEach(r=>{
+        const l=Store.recs[r.id];
+        if(l&&Store.pending[r.id]&&l.u>r.u)return;
+        if(!l||r.u>l.u||(r.u===l.u&&(l.x!==(r.x?1:0)))){Store.recs[r.id]={id:r.id,t:r.t,d:r.d,u:r.u,x:r.x?1:0};changed=true;}
+      });
+      Store.cursor=j.cursor||0;Store.settings.lastSync=Date.now();
+      Store.rebuild();Store.persist();
+      this.state='ok';this.err='';
+      if(changed)safeRender();else renderStatus();
+      if(manual)toast(changed?'Sincronizado: hay datos nuevos':'Sincronizado');
+    }catch(e){
+      this.state='error';this.err=e.message||String(e);renderStatus();
+      if(manual)toast('No se pudo sincronizar: '+this.err,'err');
+    }finally{
+      this.busy=false;
+      if(this.again||(Object.keys(Store.pending).length&&this.state==='ok')){this.again=false;if(Object.keys(Store.pending).length)this.soon(1500);}
+    }
+  },
+  async ping(url,token){
+    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'ping',token}),redirect:'follow'});
+    let j;try{j=await r.json();}catch(e){throw new Error('la dirección no responde como la app (¿termina en /exec?)');}
+    if(!j.ok)throw new Error(j.error||'error');
+    if(j.app!=='ecografias')throw new Error('esa dirección es de otra app');
+    return j;
+  }
+};
+
+/* ---------- Actualizaciones ---------- */
+const Upd={available:null,
+  async check(manual){
+    try{
+      const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});
+      const v=await r.json();
+      if(Number(v.version)>APP_VERSION){this.available=v;safeRender();if(manual)this.apply();}
+      else{this.available=null;if(manual)toast(`Ya tienes la última versión (${APP_VERSION})`);}
+    }catch(e){if(manual)toast('No se pudo buscar actualizaciones. Revisa tu conexión.','err');}
+  },
+  async apply(){
+    toast('Actualizando…');
+    try{
+      if(Object.keys(Store.pending).length&&Sync.configured())await Sync.run(false);
+      const reg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();
+      if(reg)await reg.update();
+      if(window.caches){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}
+    }catch(e){}
+    location.reload();
+  }
+};
+
+/* ---------- Tarifas, retención y cálculos ---------- */
+function tarifaIdx(c,date){let i=0;c.tarifas.forEach((t,j)=>{if(t.desde<=date)i=j;});return i;}
+function priceOf(cid,eid,date){const c=centro(cid);if(!c)return null;const t=c.tarifas[tarifaIdx(c,date||todayISO())];const v=t.precios[eid];return(typeof v==='number'&&isFinite(v))?v:null;}
+function tasaAnio(y){const T=Store.tasas;const ys=Object.keys(T).map(Number).sort((a,b)=>a-b);if(!ys.length)return 0;if(T[y]!=null)return Number(T[y]);if(y>ys[ys.length-1])return Number(T[ys[ys.length-1]]);if(y<ys[0])return Number(T[ys[0]]);let v=T[ys[0]];ys.forEach(k=>{if(k<=y)v=T[k];});return Number(v);}
+function retRate(cid,date){const c=centro(cid);if(!c||c.boleta===false)return 0;return tasaAnio(+date.slice(0,4))/100;}
+function newAcc(){return{gris:0,dop:0,total:0,bruto:0,ret:0,liq:0,sinValor:0,horas:0,hEco:0,hLiq:0,dates:new Set(),rates:new Set(),ex:{},msk:{}};}
+function addEntry(A,e){
+  const rate=retRate(e.cid,e.date);let eb=0,et=0;
+  for(const[k,n]of Object.entries(e.counts)){
+    const ex=EX[k];if(!ex)continue;
+    if(ex.g==='gris')A.gris+=n;else A.dop+=n;et+=n;
+    const x=A.ex[k]||(A.ex[k]={n:0,bruto:0,ret:0,liq:0,miss:0,prices:new Set()});x.n+=n;
+    const p=priceOf(e.cid,k,e.date);
+    if(p==null){A.sinValor+=n;x.miss+=n;}else{const b=p*n;x.bruto+=b;x.ret+=b*rate;x.liq+=b*(1-rate);x.prices.add(p);eb+=b;}
+  }
+  A.total+=et;A.bruto+=eb;A.ret+=eb*rate;A.liq+=eb*(1-rate);
+  if(eb)A.rates.add(rate);
+  A.dates.add(e.date);
+  if(e.horas){A.horas+=e.horas;A.hEco+=et;A.hLiq+=eb*(1-rate);}
+  for(const[k,n]of Object.entries(e.msk||{}))A.msk[k]=(A.msk[k]||0)+n;
+}
+function summarize(list){const T=newAcc(),by={};list.forEach(e=>{addEntry(T,e);addEntry(by[e.cid]||(by[e.cid]=newAcc()),e);});return{T,by};}
+function entryCalc(e){const A=newAcc();addEntry(A,e);return A;}
+function rateLabel(A){if(A.rates.size===1){const r=[...A.rates][0];return r?`retención ${pct(r*100)}`:'sin retención';}return 'retención';}
+function validEntries(){return Store.entries().filter(e=>centro(e.cid));}
+function detailText(counts){return EXAMS.filter(e=>counts[e.id]).map(e=>`${e.s} ${counts[e.id]}`).join(', ');}
+const perH=(a,h)=>String(Math.round(a/h*10)/10).replace('.',',');
+function prodHTML(A){if(!A.horas)return '';return `<span>${hFmt(A.horas)} · <b>${perH(A.hEco,A.horas)}</b> eco/h · <b>${money(A.hLiq/A.horas)}</b> líquido/h</span>`;}
+
+/* ---------- Estado de UI ---------- */
+const ui={tab:'inicio',cid:'all',ym:todayISO().slice(0,7),diasYm:todayISO().slice(0,7),diasCid:'all',valCid:null,tarIdx:null,caCid:'all',caFrom:'',caTo:'',needsRender:false};
+
+/* ---------- Render ---------- */
+function applyTheme(){const t=Store.settings.theme;if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;else delete document.documentElement.dataset.theme;}
+function safeRender(){
+  const a=document.activeElement;
+  if(a&&a.closest&&a.closest('#app')&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)){ui.needsRender=true;renderStatus();return;}
+  render();
+}
+function statusHTML(){
+  const pend=Object.keys(Store.pending).length;
+  if(!Sync.configured())return `<button class="status" data-act="tab" data-v="ajustes"><span class="dot local"></span>Solo en este dispositivo · configurar sincronización</button>`;
+  const t=Store.settings.lastSync?new Date(Store.settings.lastSync).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'nunca';
+  if(Sync.state==='syncing')return `<span class="status"><span class="dot busy"></span>Sincronizando…</span>`;
+  if(Sync.state==='error')return `<button class="status" data-act="sync"><span class="dot err"></span>No se pudo sincronizar · reintentar</button>`;
+  if(Sync.state==='offline'||!navigator.onLine)return `<span class="status"><span class="dot local"></span>Sin conexión${pend?` · ${pend} ${pend===1?'cambio pendiente':'cambios pendientes'}`:''}</span>`;
+  return `<button class="status" data-act="sync" title="Sincronizar ahora"><span class="dot"></span>${pend?`${pend} ${pend===1?'cambio':'cambios'} por subir`:`Sincronizado · ${t}`}</button>`;
+}
+function renderStatus(){const el=$('#syncStatus');if(el)el.innerHTML=statusHTML();}
+const TABS=[['inicio','Inicio'],['dias','Días'],['casu','Casuística'],['valores','Valores'],['ajustes','Ajustes']];
+function render(){
+  ui.needsRender=false;
+  let body='';
+  if(ui.tab==='inicio')body=viewInicio();
+  else if(ui.tab==='dias')body=viewDias();
+  else if(ui.tab==='casu')body=viewCasu();
+  else if(ui.tab==='valores')body=viewValores();
+  else body=viewAjustes();
+  $('#app').innerHTML=`
+  <header class="top">
+    <div class="brand"><img class="appicon" src="apple-touch-icon.png" alt=""><div><h1>Ecografías</h1><small id="syncStatus">${statusHTML()}</small></div></div>
+    <nav class="tabs" role="tablist">${TABS.map(([k,l])=>`<button role="tab" aria-selected="${ui.tab===k}" data-act="tab" data-v="${k}">${l}</button>`).join('')}</nav>
+  </header>
+  ${Upd.available?`<div class="banner"><span>Hay una versión nueva (${esc(Upd.available.version)})${Upd.available.notas?`: ${esc(Upd.available.notas)}`:''}</span><button class="btn sm primary" data-act="applyUpdate">Actualizar</button></div>`:''}
+  ${body}`;
+}
+function centerChips(sel,act,withAll=true,withAdd=false){
+  const C=Store.centros;
+  return `<div class="bar" role="group" aria-label="Centro">${withAll?`<button class="chip" aria-pressed="${sel==='all'}" data-act="${act}" data-v="all">Todos los centros</button>`:''}${C.map(c=>`<button class="chip" aria-pressed="${sel===c.id}" data-act="${act}" data-v="${c.id}">${esc(c.nombre)}</button>`).join('')}${withAdd?`<button class="chip add" data-act="newCenter">+ Crear centro</button>`:''}</div>`;
+}
+function viewInicio(){
+  const C=Store.centros;
+  if(!C.length)return `<div class="panel empty"><strong>Crea tu primer centro para empezar</strong>Cada centro tiene sus propios valores y su registro diario de ecografías.<br><br><button class="btn primary" data-act="newCenter">Crear centro</button>${!Sync.configured()?`<br><br><span class="note">¿Ya usas la app en otro dispositivo? Conéctala en <button class="btn sm ghost" data-act="tab" data-v="ajustes">Ajustes</button></span>`:''}</div>`;
+  if(ui.cid!=='all'&&!centro(ui.cid))ui.cid='all';
+  const all=validEntries().filter(e=>ui.cid==='all'||e.cid===ui.cid);
+  const month=all.filter(e=>e.date.startsWith(ui.ym));
+  const{T,by}=summarize(month);
+  const cids=Object.keys(by);
+  const single=ui.cid!=='all'?ui.cid:(cids.length===1?cids[0]:null);
+  const gp=T.total?T.gris/T.total*100:0;
+  const unitCell=x=>{if(!single)return '';if(!x.prices.size)return `<td class="num"><span class="warn">sin valor</span></td>`;return `<td class="num">${x.prices.size===1?money([...x.prices][0]):'varía'}</td>`;};
+  const exTable=g=>{const rs=EXAMS.filter(e=>e.g===g&&T.ex[e.id]);if(!rs.length)return'';
+    const sub=rs.reduce((a,e)=>({n:a.n+T.ex[e.id].n,b:a.b+T.ex[e.id].bruto,l:a.l+T.ex[e.id].liq}),{n:0,b:0,l:0});
+    return `<tr class="group"><td>${g==='gris'?'<span class="sw g"></span>Escala de grises':'<span class="sw d"></span>Doppler'}</td><td class="num">${sub.n}</td>${single?'<td></td>':''}<td class="num">${money(sub.b)}</td><td class="num">${money(sub.l)}</td></tr>`+
+    rs.map(e=>{const x=T.ex[e.id];return `<tr><td>${esc(e.n)}</td><td class="num">${x.n}</td>${unitCell(x)}<td class="num">${x.miss&&!x.bruto?'—':money(x.bruto)}${x.miss&&x.bruto?' <span class="warn">*</span>':''}</td><td class="num">${x.miss&&!x.bruto?'—':money(x.liq)}</td></tr>`;}).join('');};
+  const byYm={};all.forEach(e=>{const ym=e.date.slice(0,7);(byYm[ym]=byYm[ym]||[]).push(e);});
+  const hist=Object.keys(byYm).sort().reverse().map(ym=>({ym,...summarize(byYm[ym]).T}));
+  return `
+  ${centerChips(ui.cid,'filter',true,true)}
+  <div class="actions">
+    <button class="btn primary" data-act="register">Registrar ecografías</button>
+    <button class="btn" data-act="import">Importar Excel</button>
+    <button class="btn" data-act="export">Exportar</button>
+    <button class="btn" data-act="goValores">Agregar valores</button>
+  </div>
+  <section class="panel">
+    <div class="bar" style="justify-content:space-between;margin:0">
+      <div class="monthnav"><button class="iconbtn" data-act="ym" data-v="-1" aria-label="Mes anterior">‹</button><strong>${monthLabel(ui.ym)}</strong><button class="iconbtn" data-act="ym" data-v="1" aria-label="Mes siguiente">›</button></div>
+      <span class="note">${ui.cid==='all'?'Todos los centros':esc(centro(ui.cid).nombre)} · ${T.dates.size} ${T.dates.size===1?'día':'días'} trabajados</span>
+    </div>
+    ${T.total?`
+    <div class="hero">
+      <div><div class="big">${intFmt.format(T.total)}</div><div class="big-label">ecografías en el mes</div></div>
+      <div><div class="money">${money(T.liq)}</div><div class="big-label rt">líquido estimado</div><div class="note rt">Bruto ${money(T.bruto)} · ${rateLabel(T)} ${money(T.ret)}</div></div>
+    </div>
+    <div class="split" role="img" aria-label="${T.gris} en escala de grises y ${T.dop} Doppler"><div class="g" style="width:${gp}%"></div><div class="d" style="width:${100-gp}%"></div></div>
+    <div class="legend"><span><span class="sw g"></span>Grises: <b>${T.gris}</b></span><span><span class="sw d"></span>Doppler: <b>${T.dop}</b></span>${prodHTML(T)}</div>
+    ${T.sinValor?`<p class="warn">${T.sinValor} ${T.sinValor===1?'ecografía no tiene':'ecografías no tienen'} valor definido y no ${T.sinValor===1?'suma':'suman'} al monto. <button class="btn sm ghost" data-act="goValores">Agregar valores</button></p>`:''}
+    <h3>Detalle por tipo</h3>
+    <div class="tbl-wrap"><table><thead><tr><th>Examen</th><th class="num">Cant.</th>${single?'<th class="num">Valor bruto</th>':''}<th class="num">Bruto</th><th class="num">Líquido</th></tr></thead><tbody>
+      ${exTable('gris')}${exTable('doppler')}
+      <tr class="total"><td>Total</td><td class="num">${T.total}</td>${single?'<td></td>':''}<td class="num">${money(T.bruto)}</td><td class="num">${money(T.liq)}</td></tr>
+    </tbody></table></div>
+    ${cids.length>1?`<h3>Por centro</h3><div class="tbl-wrap"><table><thead><tr><th>Centro</th><th class="num">Días</th><th class="num">Horas</th><th class="num">Ecografías</th><th class="num">Eco/h</th><th class="num">Líquido</th><th class="num">Líquido/h</th></tr></thead><tbody>
+      ${cids.map(cid=>{const p=by[cid];return `<tr><td>${esc(centro(cid).nombre)}</td><td class="num">${p.dates.size}</td><td class="num">${p.horas?hFmt(p.horas):'—'}</td><td class="num">${p.total}</td><td class="num">${p.horas?perH(p.hEco,p.horas):'—'}</td><td class="num">${money(p.liq)}</td><td class="num">${p.horas?money(p.hLiq/p.horas):'—'}</td></tr>`;}).join('')}
+    </tbody></table></div><p class="note">Eco/h y líquido/h se calculan solo con los días en que registraste horas.</p>`:''}
+    `:`<div class="empty"><strong>Sin ecografías en ${monthLabel(ui.ym).toLowerCase()}</strong>Registra un día o importa un Excel.</div>`}
+  </section>
+  <section class="panel">
+    <h2>Resumen por mes</h2>
+    ${hist.length?`<div class="tbl-wrap"><table><thead><tr><th>Mes</th><th class="num">Grises</th><th class="num">Doppler</th><th class="num">Total</th><th class="num">Horas</th><th class="num">Bruto</th><th class="num">Líquido</th></tr></thead><tbody>
+    ${hist.map(h=>`<tr class="click ${h.ym===ui.ym?'current':''}" data-act="pickYm" data-v="${h.ym}"><td>${monthLabel(h.ym)}</td><td class="num">${h.gris}</td><td class="num">${h.dop}</td><td class="num">${h.total}</td><td class="num">${h.horas?hFmt(h.horas):'—'}</td><td class="num">${money(h.bruto)}</td><td class="num"><b>${money(h.liq)}</b>${h.sinValor?' <span class="warn">*</span>':''}</td></tr>`).join('')}
+    </tbody></table></div>`:'<p class="note">Aún no hay meses con registros.</p>'}
+  </section>`;
+}
+function viewDias(){
+  const C=Store.centros;
+  if(!C.length)return `<div class="panel empty"><strong>No hay centros todavía</strong><button class="btn primary" data-act="newCenter">Crear centro</button></div>`;
+  if(ui.diasCid!=='all'&&!centro(ui.diasCid))ui.diasCid='all';
+  const all=validEntries().filter(e=>ui.diasCid==='all'||e.cid===ui.diasCid);
+  const yms=[...new Set(all.map(e=>e.date.slice(0,7)).concat([todayISO().slice(0,7)]))].sort().reverse();
+  const list=all.filter(e=>ui.diasYm==='all'||e.date.startsWith(ui.diasYm)).slice().reverse();
+  let lastYm='';
+  const cards=list.map(e=>{
+    const s=entryCalc(e);const ym=e.date.slice(0,7);
+    const sep=(ui.diasYm==='all'&&ym!==lastYm)?`<div class="month-sep">${monthLabel(ym)}</div>`:'';lastYm=ym;
+    const mskTxt=Object.keys(e.msk||{}).length?`<p class="note" style="margin:0 0 8px">MSK: ${MSK.filter(m=>e.msk[m.id]).map(m=>`${esc(m.n)} ${e.msk[m.id]}`).join(', ')}</p>`:'';
+    return `${sep}<article class="day">
+      <div class="day-head"><div class="day-title">${dayTitle(e.date)}<span class="tag">${esc(centro(e.cid).nombre)}</span></div><div><b>${s.total}</b> eco${e.horas?` · ${hFmt(e.horas)}`:''} · <b>${money(s.liq)}</b> líquido${s.sinValor?' <span class="warn">*</span>':''}</div></div>
+      <div class="pills">${EXAMS.filter(x=>e.counts[x.id]).map(x=>`<span class="pill ${x.g==='gris'?'g':'d'}">${esc(x.n)}: <b>${e.counts[x.id]}</b></span>`).join('')}</div>
+      ${mskTxt}
+      <div class="day-foot"><span class="note">Grises ${s.gris} · Doppler ${s.dop} · bruto ${money(s.bruto)}${e.sumas.length?` · ${e.sumas.length} desde Atajos`:''}</span><span><button class="btn sm" data-act="editDay" data-c="${e.cid}" data-d="${e.date}">Editar</button> <button class="btn sm danger" data-act="delDay" data-c="${e.cid}" data-d="${e.date}">Eliminar</button></span></div>
+    </article>`;}).join('');
+  return `
+  ${centerChips(ui.diasCid,'diasCid',true,false)}
+  <div class="bar" style="justify-content:space-between">
+    <select id="diasYm" class="sel" aria-label="Mes">
+      <option value="all" ${ui.diasYm==='all'?'selected':''}>Todos los meses</option>
+      ${yms.map(ym=>`<option value="${ym}" ${ui.diasYm===ym?'selected':''}>${monthLabel(ym)}</option>`).join('')}
+    </select>
+    <button class="btn primary" data-act="register">Registrar día</button>
+  </div>
+  ${cards||`<div class="panel empty"><strong>No hay días registrados en este período</strong>Usa “Registrar día” para agregar uno.</div>`}`;
+}
+function monthsWithData(){return [...new Set(validEntries().map(e=>e.date.slice(0,7)))].sort();}
+function casuList(){
+  const yms=monthsWithData();
+  let from=ui.caFrom&&yms.includes(ui.caFrom)?ui.caFrom:yms[0]||'',to=ui.caTo&&yms.includes(ui.caTo)?ui.caTo:yms[yms.length-1]||'';
+  if(from>to)[from,to]=[to,from];
+  const list=validEntries().filter(e=>{const ym=e.date.slice(0,7);return(ui.caCid==='all'||e.cid===ui.caCid)&&ym>=from&&ym<=to;});
+  return{yms,from,to,list};
+}
+function casuData(list){
+  const A=summarize(list).T;
+  const years={};list.forEach(e=>{const y=e.date.slice(0,4);const Y=years[y]||(years[y]={gris:0,dop:0,dias:new Set()});Y.dias.add(e.date);for(const[k,n]of Object.entries(e.counts))EX[k].g==='gris'?Y.gris+=n:Y.dop+=n;});
+  const mskTot=Object.values(A.msk).reduce((a,b)=>a+b,0);const pb=A.ex.pb?.n||0;
+  return{A,years,mskTot,pb};
+}
+function viewCasu(){
+  if(!Store.centros.length)return `<div class="panel empty"><strong>No hay centros todavía</strong><button class="btn primary" data-act="newCenter">Crear centro</button></div>`;
+  if(ui.caCid!=='all'&&!centro(ui.caCid))ui.caCid='all';
+  const{yms,from,to,list}=casuList();
+  if(!yms.length)return `${centerChips(ui.caCid,'caCid',true,false)}<div class="panel empty"><strong>Aún no hay ecografías registradas</strong>Tu casuística aparecerá aquí a medida que registres días.</div>`;
+  const{A,years,mskTot,pb}=casuData(list);
+  const opt=sel=>yms.map(ym=>`<option value="${ym}" ${ym===sel?'selected':''}>${monthLabel(ym)}</option>`).join('');
+  const row=e=>{const x=A.ex[e.id];if(!x)return'';return `<tr><td>${esc(e.n)}</td><td class="num">${x.n}</td><td class="num">${A.total?pct(x.n/A.total*100):''}</td></tr>`;};
+  return `
+  ${centerChips(ui.caCid,'caCid',true,false)}
+  <div class="bar">
+    <label class="note" for="caFrom">Desde</label><select id="caFrom" class="sel sm">${opt(from)}</select>
+    <label class="note" for="caTo">Hasta</label><select id="caTo" class="sel sm">${opt(to)}</select>
+    <button class="btn" data-act="exportCasu">Exportar casuística (Excel)</button>
+  </div>
+  <section class="panel">
+    <div class="hero"><div><div class="big">${intFmt.format(A.total)}</div><div class="big-label">ecografías · ${A.dates.size} días de trabajo</div></div><div class="note rt">Grises ${A.gris} · Doppler ${A.dop}${A.horas?`<br>${hFmt(A.horas)} registradas`:''}</div></div>
+    <h3>Por tipo de examen</h3>
+    <div class="tbl-wrap"><table><thead><tr><th>Examen</th><th class="num">Cantidad</th><th class="num">% del total</th></tr></thead><tbody>
+      ${A.gris?`<tr class="group"><td><span class="sw g"></span>Escala de grises</td><td class="num">${A.gris}</td><td class="num">${pct(A.gris/A.total*100)}</td></tr>${GRIS.map(row).join('')}`:''}
+      ${A.dop?`<tr class="group"><td><span class="sw d"></span>Doppler</td><td class="num">${A.dop}</td><td class="num">${pct(A.dop/A.total*100)}</td></tr>${DOP.map(row).join('')}`:''}
+    </tbody></table></div>
+    ${pb?`<h3>Partes blandas / MSK por región</h3>
+    <div class="tbl-wrap"><table><thead><tr><th>Región</th><th class="num">Cantidad</th></tr></thead><tbody>
+      ${MSK.filter(m=>A.msk[m.id]).map(m=>`<tr><td>${esc(m.n)}</td><td class="num">${A.msk[m.id]}</td></tr>`).join('')}
+      ${pb-mskTot>0?`<tr><td class="note">Sin región especificada</td><td class="num">${pb-mskTot}</td></tr>`:''}
+      <tr class="total"><td>Total partes blandas / MSK</td><td class="num">${pb}</td></tr>
+    </tbody></table></div>`:''}
+    <h3>Por año</h3>
+    <div class="tbl-wrap"><table><thead><tr><th>Año</th><th class="num">Días</th><th class="num">Grises</th><th class="num">Doppler</th><th class="num">Total</th></tr></thead><tbody>
+      ${Object.keys(years).sort().reverse().map(y=>`<tr><td>${y}</td><td class="num">${years[y].dias.size}</td><td class="num">${years[y].gris}</td><td class="num">${years[y].dop}</td><td class="num">${years[y].gris+years[y].dop}</td></tr>`).join('')}
+    </tbody></table></div>
+  </section>`;
+}
+function viewValores(){
+  const C=Store.centros;
+  if(!C.length)return `<div class="panel empty"><strong>No hay centros todavía</strong>Crea un centro para fijar sus valores.<br><br><button class="btn primary" data-act="newCenter">Crear centro</button></div>`;
+  if(!centro(ui.valCid)){ui.valCid=C[0].id;ui.tarIdx=null;}
+  const c=centro(ui.valCid);
+  const vig=tarifaIdx(c,todayISO());
+  if(ui.tarIdx==null||!c.tarifas[ui.tarIdx])ui.tarIdx=vig;
+  const t=c.tarifas[ui.tarIdx];
+  const inp=ex=>`<div class="exrow"><div class="exname">${esc(ex.n)}</div><input class="price" type="text" inputmode="numeric" name="${ex.id}" value="${t.precios[ex.id]!=null?intFmt.format(t.precios[ex.id]):''}" placeholder="$ 0" aria-label="Valor ${esc(ex.n)}"></div>`;
+  const others=C.filter(x=>x.id!==c.id);
+  const hasta=i=>c.tarifas[i+1]?` hasta el ${fechaCorta(shiftDay(c.tarifas[i+1].desde,-1))}`:' en adelante';
+  return `
+  ${centerChips(ui.valCid,'valCid',false,true)}
+  <section class="panel">
+    <h2>Agregar valores · ${esc(c.nombre)}</h2>
+    <p class="note">Valores <b>brutos</b> por ecografía (lo que paga el centro antes de la retención). Déjalo vacío si aún no lo sabes.</p>
+    <div class="bar" role="group" aria-label="Tarifas">${c.tarifas.map((x,i)=>`<button class="chip" aria-pressed="${i===ui.tarIdx}" data-act="tarIdx" data-v="${i}">${x.desde===INICIO?'Tarifa inicial':`Desde ${fechaCorta(x.desde)}`}${i===vig?' · vigente':''}</button>`).join('')}<button class="chip add" data-act="newTarifa">+ Nueva tarifa</button></div>
+    <p class="note">Se aplica a los días desde ${fechaCorta(t.desde)}${hasta(ui.tarIdx)}. ${ui.tarIdx>0?`<button class="btn sm ghost" data-act="editTarifa">Cambiar fecha</button> <button class="btn sm ghost danger" data-act="delTarifa">Eliminar tarifa</button>`:''}</p>
+    <form id="pricesForm">
+      <div class="cols2">
+        <div><div class="grp-head"><span class="sw g"></span>Escala de grises</div>${GRIS.map(inp).join('')}</div>
+        <div><div class="grp-head"><span class="sw d"></span>Doppler</div>${DOP.map(inp).join('')}</div>
+      </div>
+      <div class="bar" style="margin-top:16px;justify-content:space-between">
+        <span>${others.length?`<select id="copyFrom" class="map" aria-label="Copiar valores desde"><option value="">Copiar valores vigentes de…</option>${others.map(o=>`<option value="${o.id}">${esc(o.nombre)}</option>`).join('')}</select>`:''}</span>
+        <button class="btn primary" type="submit">Guardar valores</button>
+      </div>
+    </form>
+  </section>
+  <section class="panel">
+    <h2>Centro</h2>
+    <div class="row2">
+      <div class="field"><label class="f" for="cName">Nombre</label><input type="text" id="cName" value="${esc(c.nombre)}"></div>
+      <div class="field" style="display:flex;align-items:flex-end;gap:8px"><button class="btn" data-act="renameCenter">Cambiar nombre</button><button class="btn danger" data-act="delCenter">Eliminar centro</button></div>
+    </div>
+    <label class="check"><input type="checkbox" id="cBoleta" ${c.boleta!==false?'checked':''}> Pago con boleta de honorarios (se descuenta la retención)</label>
+  </section>`;
+}
+function viewAjustes(){
+  const st=Store.settings;const pend=Object.keys(Store.pending).length;
+  const nDays=Store.days.length,nC=Store.centros.length;
+  const ys=Object.keys(Store.tasas).map(Number).sort((a,b)=>a-b);
+  return `
+  <section class="panel">
+    <h2>Sincronización entre dispositivos</h2>
+    <p class="note">Tus datos se guardan en una hoja de Google de tu cuenta. Todos los dispositivos conectados a la misma dirección quedan iguales. Sin internet la app sigue funcionando y sube los cambios cuando vuelve la conexión.</p>
+    <div class="field"><label class="f" for="setUrl">Dirección de la aplicación web de Apps Script <span class="note">(termina en /exec)</span></label><input type="text" id="setUrl" value="${esc(st.url)}" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+    <div class="field"><label class="f" for="setToken">Token <span class="note">(lo muestra la función «configurar» en Apps Script)</span></label><input type="password" id="setToken" value="${esc(st.token)}" autocomplete="off"></div>
+    <div class="bar"><button class="btn primary" data-act="saveSync">Guardar y probar conexión</button><button class="btn" data-act="sync" ${Sync.configured()?'':'disabled'}>Sincronizar ahora</button>${Sync.configured()?`<button class="btn ghost" data-act="unlink">Desconectar este dispositivo</button>`:''}</div>
+    <p class="note">${Sync.configured()?`Última sincronización: ${st.lastSync?new Date(st.lastSync).toLocaleString('es-CL'):'nunca'}${pend?` · ${pend} ${pend===1?'cambio pendiente':'cambios pendientes'}`:''}${Sync.state==='error'?` · <span class="warn">Error: ${esc(Sync.err)}</span>`:''}`:'Este dispositivo aún no está conectado.'}</p>
+    <h3>Conectar otro dispositivo</h3>
+    <div class="row2">
+      <div class="field"><label class="f">En este dispositivo (ya configurado)</label><button class="btn" data-act="copyCode" ${Sync.configured()?'':'disabled'}>Copiar código para otro dispositivo</button></div>
+      <div class="field"><label class="f" for="pasteCode">En el dispositivo nuevo</label><div style="display:flex;gap:8px"><input type="text" id="pasteCode" placeholder="Pega aquí el código" autocomplete="off" class="txt"><button class="btn" data-act="useCode">Conectar</button></div></div>
+    </div>
+    <p class="note">El código incluye la dirección y el token: compártelo solo contigo mismo (AirDrop, Notas).</p>
+  </section>
+  <section class="panel">
+    <h2>Retención de boletas de honorarios</h2>
+    <p class="note">Se descuenta de todos los montos estimados según el año del día trabajado. Los años posteriores al último usan la última tasa. Puedes desactivarla por centro en Valores.</p>
+    <form id="tasasForm"><div class="tasas">${ys.map(y=>`<label><span>${y}</span><input type="text" inputmode="decimal" name="${y}" value="${String(Store.tasas[y]).replace('.',',')}" aria-label="Tasa ${y}"> %</label>`).join('')}</div>
+    <div class="bar" style="margin-top:12px"><button class="btn" type="submit">Guardar tasas</button><button class="btn ghost" type="button" data-act="resetTasas">Restablecer las del SII</button></div></form>
+  </section>
+  <section class="panel">
+    <h2>Atajos de iOS y Siri</h2>
+    <p class="note">Suma ecografías sin abrir la app: «Oye Siri, sumar ecografía». El atajo las envía a tu hoja de Google y aparecen en todos tus dispositivos en la siguiente sincronización. Requiere internet y tener la sincronización configurada.</p>
+    ${Sync.configured()?`<div class="bar"><button class="btn" data-act="copyUrl">Copiar dirección</button><button class="btn" data-act="copyToken">Copiar token</button><button class="btn" data-act="copyExams">Copiar lista de exámenes</button><button class="btn" data-act="copyCenters">Copiar lista de centros</button></div>`:'<p class="warn">Primero configura la sincronización.</p>'}
+    <details class="how"><summary>Cómo crear el atajo</summary>
+    <ol>
+      <li>Abre la app <b>Atajos → +</b> y ponle de nombre <b>Sumar ecografía</b>.</li>
+      <li>Agrega la acción <b>Lista</b> y pega la lista de exámenes (uno por línea). Luego agrega <b>Elegir de la lista</b>, con el aviso «¿Qué ecografía?».</li>
+      <li>Si trabajas en más de un centro, repite con la lista de centros y el aviso «¿En qué centro?». Si trabajas en uno solo, omite este paso.</li>
+      <li>Opcional: <b>Pedir entrada</b> de tipo número, «¿Cuántas?», con 1 como valor predeterminado.</li>
+      <li>Agrega <b>Obtener contenido de URL</b>: pega la dirección, Método <b>POST</b>, Cuerpo de la solicitud <b>JSON</b>, con estos campos de texto: <code>action</code> = <code>sumar</code>, <code>token</code> = tu token, <code>examen</code> = el examen elegido, <code>centro</code> = el centro elegido y <code>n</code> = la cantidad.</li>
+      <li>Agrega <b>Obtener valor del diccionario</b> con la clave <code>mensaje</code> y luego <b>Mostrar resultado</b>. Verás, por ejemplo, «Sumado: 1 Doppler venoso, una extremidad en Clínica A. Hoy llevas 7».</li>
+      <li>Opcional: agrega el atajo a la pantalla de inicio o como widget, o crea un atajo por cada examen frecuente sin la lista.</li>
+    </ol>
+    <p class="note">Se registra con la fecha de hoy (hora de Chile). Si necesitas corregir, edita el día en la app: al guardar, lo sumado desde Atajos queda incorporado al día.</p></details>
+  </section>
+  <section class="panel">
+    <h2>Conexión con la app de finanzas</h2>
+    <p class="note">La hoja de Google incluye la pestaña <b>Resumen mensual</b>, con el bruto, la retención y el líquido de cada centro por mes. La misma dirección de sincronización entrega ese resumen a la app de finanzas, donde entrará como ingreso esperado de «Turnos / honorarios» con boleta, usando el centro como pagador.</p>
+    <div class="bar"><button class="btn" data-act="copyCode" ${Sync.configured()?'':'disabled'}>Copiar código para la app de finanzas</button></div>
+  </section>
+  <section class="panel">
+    <h2>Actualizaciones</h2>
+    <div class="bar" style="justify-content:space-between"><span>Versión instalada: <b>${APP_VERSION}</b>${Upd.available?` · <span class="warn">disponible la ${esc(Upd.available.version)}</span>`:''}</span><button class="btn" data-act="checkUpdate">Buscar actualización</button></div>
+  </section>
+  <section class="panel">
+    <h2>Apariencia</h2>
+    <div class="seg" role="radiogroup" aria-label="Tema">${[['auto','Automático'],['light','Claro'],['dark','Oscuro']].map(([v,l])=>`<label><input type="radio" name="theme" value="${v}" ${st.theme===v?'checked':''}>${l}</label>`).join('')}</div>
+  </section>
+  <section class="panel">
+    <h2>Exportar e importar datos</h2>
+    <p class="note">${nC} ${nC===1?'centro':'centros'} y ${nDays} ${nDays===1?'día registrado':'días registrados'}.</p>
+    <div class="bar">
+      <button class="btn" data-act="backup">Exportar datos (.json)</button>
+      <button class="btn" data-act="exportAll">Exportar todo el historial (Excel)</button>
+      <label class="btn">Importar datos (.json)<input type="file" id="restoreFile" accept=".json,application/json" hidden></label>
+    </div>
+    <p class="note">El archivo .json es una copia completa: centros, tarifas, días, horas, regiones MSK, tasas y reconocimientos del importador.</p>
+  </section>
+  <section class="panel">
+    <h2>Mantenimiento</h2>
+    <div class="bar">
+      <button class="btn" data-act="resync" ${Sync.configured()?'':'disabled'}>Volver a descargar todo desde la hoja</button>
+      <button class="btn danger" data-act="wipe">Empezar de cero</button>
+    </div>
+    <p class="note">«Empezar de cero» borra todos los datos en este dispositivo y, si está conectado, también en la hoja y en tus otros dispositivos.</p>
+  </section>
+  <section class="panel">
+    <h2>Atajos de teclado (Mac)</h2>
+    <div class="tbl-wrap"><table><tbody>
+      <tr><td>⌘N</td><td>Registrar ecografías</td></tr><tr><td>⌘R</td><td>Sincronizar</td></tr><tr><td>⌘E</td><td>Exportar</td></tr><tr><td>⌘I</td><td>Importar Excel</td></tr>
+      <tr><td>⌘1 a ⌘5</td><td>Cambiar de pestaña</td></tr><tr><td>⌘← y ⌘→</td><td>Cambiar de mes</td></tr>
+    </tbody></table></div>
+  </section>`;
+}
+
+/* ---------- Modales ---------- */
+function showModal(html,wide=false){$('#modalRoot').innerHTML=`<div class="overlay" data-act="overlay"><div class="modal ${wide?'wide':''}" role="dialog" aria-modal="true">${html}</div></div>`;document.body.style.overflow='hidden';const f=$('#modalRoot [autofocus]')||$('#modalRoot input,#modalRoot select,#modalRoot button');if(f)f.focus();}
+function closeModal(){$('#modalRoot').innerHTML='';document.body.style.overflow='';if(ui.needsRender)render();}
+function modalOpen(){return !!$('#modalRoot').innerHTML;}
+function confirmModal(title,text,yes,onYes,typed){
+  showModal(`<div class="modal-head"><h2>${esc(title)}</h2></div><p>${text}</p>${typed?`<div class="field"><label class="f" for="cfTyped">Escribe ${esc(typed)} para confirmar</label><input type="text" id="cfTyped" autocomplete="off" autocapitalize="characters"></div>`:''}<div class="modal-foot"><span></span><span><button class="btn" data-act="close">Cancelar</button> <button class="btn danger" id="cfYes" ${typed?'disabled':''}>${esc(yes)}</button></span></div>`);
+  if(typed)$('#cfTyped').oninput=e=>{$('#cfYes').disabled=e.target.value.trim().toUpperCase()!==typed;};
+  $('#cfYes').onclick=()=>{closeModal();onYes();};
+}
+function toast(msg,kind){const t=document.createElement('div');t.className='toast'+(kind==='err'?' err':'');t.setAttribute('role','status');t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),kind==='err'?5000:2600);}
+
+/* Crear centro */
+function openNewCenter(){
+  const C=Store.centros;
+  showModal(`<div class="modal-head"><h2>Crear centro</h2><button class="iconbtn" data-act="close" aria-label="Cerrar">×</button></div>
+  <form id="ncForm">
+    <div class="field"><label class="f" for="ncName">Nombre del centro</label><input type="text" id="ncName" required autofocus placeholder="Ej.: Clínica San Carlos"></div>
+    ${C.length?`<div class="field"><label class="f" for="ncCopy">Valores iniciales</label><select id="ncCopy"><option value="">Sin valores (los defino después)</option>${C.map(c=>`<option value="${c.id}">Copiar valores vigentes de ${esc(c.nombre)}</option>`).join('')}</select></div>`:''}
+    <label class="check"><input type="checkbox" id="ncBoleta" checked> Pago con boleta de honorarios (se descuenta la retención)</label>
+    <div class="modal-foot"><span></span><span><button type="button" class="btn" data-act="close">Cancelar</button> <button class="btn primary" type="submit">Crear centro</button></span></div>
+  </form>`);
+  $('#ncForm').onsubmit=ev=>{ev.preventDefault();const name=$('#ncName').value.trim();if(!name)return;
+    const from=$('#ncCopy')?.value;const orden=C.reduce((m,c)=>Math.max(m,c.orden??0),-1)+1;
+    let precios={};if(from){const f=centro(from);precios=clone(f.tarifas[tarifaIdx(f,todayISO())].precios);}
+    const c={id:newId(),nombre:name,orden,boleta:$('#ncBoleta').checked,tarifas:[{desde:INICIO,precios}]};
+    Store.saveCenter(c);ui.valCid=c.id;ui.tarIdx=null;if(ui.tab==='inicio')ui.cid=c.id;closeModal();Store.commit();
+    toast(from?'Centro creado':'Centro creado. Define sus valores en “Agregar valores”.');};
+}
+
+/* Tarifas */
+function openTarifa(editIdx){
+  const c=centro(ui.valCid);const editing=editIdx!=null;
+  const cur=editing?c.tarifas[editIdx].desde:todayISO();
+  showModal(`<div class="modal-head"><h2>${editing?'Cambiar fecha de la tarifa':'Nueva tarifa'} · ${esc(c.nombre)}</h2><button class="iconbtn" data-act="close" aria-label="Cerrar">×</button></div>
+  <form id="tfForm">
+    <div class="field"><label class="f" for="tfDate">Vigente desde</label><input type="date" id="tfDate" value="${cur}" required></div>
+    ${editing?'':`<p class="note">Parte con los valores de la tarifa que estás viendo; luego ajústalos y guarda. Los días anteriores a esta fecha conservan sus valores.</p>`}
+    <div class="modal-foot"><span></span><span><button type="button" class="btn" data-act="close">Cancelar</button> <button class="btn primary" type="submit">${editing?'Guardar fecha':'Crear tarifa'}</button></span></div>
+  </form>`);
+  $('#tfForm').onsubmit=ev=>{ev.preventDefault();const d=$('#tfDate').value;if(!d)return;
+    const x=clone(c);
+    if(d<=INICIO){toast('Elige una fecha posterior','err');return;}
+    if(x.tarifas.some((t,i)=>t.desde===d&&i!==editIdx)){toast('Ya existe una tarifa desde esa fecha','err');return;}
+    if(editing)x.tarifas[editIdx].desde=d;else x.tarifas.push({desde:d,precios:clone(c.tarifas[ui.tarIdx].precios)});
+    x.tarifas.sort((a,b)=>a.desde<b.desde?-1:1);
+    Store.saveCenter(x);ui.tarIdx=x.tarifas.findIndex(t=>t.desde===d);closeModal();Store.commit();
+    toast(editing?'Fecha actualizada':`Tarifa desde ${fechaCorta(d)} creada. Ajusta sus valores y guarda.`);};
+}
+
+/* Registrar / editar día */
+let reg=null;
+function openRegistro(cid,date,editing){
+  const C=Store.centros;
+  if(!C.length){openNewCenter();return;}
+  const c=cid||(ui.tab==='dias'&&ui.diasCid!=='all'?ui.diasCid:ui.cid!=='all'?ui.cid:C[0].id);
+  const d=date||todayISO();
+  reg={orig:editing?{cid:c,date:d}:null};
+  const step=(id,label,name)=>`<div class="exrow"><div class="exname">${esc(label)}${name?'':`<small data-price="${id}"></small>`}</div><div class="stepper"><button type="button" data-act="dec" data-v="${name||id}" aria-label="Restar ${esc(label)}">−</button><input type="number" inputmode="numeric" min="0" step="1" name="${name||id}" value="0" aria-label="${esc(label)}"><button type="button" data-act="inc" data-v="${name||id}" aria-label="Sumar ${esc(label)}">+</button></div></div>`;
+  showModal(`<div class="modal-head"><h2>${editing?'Editar día':'Registrar ecografías'}</h2><button class="iconbtn" data-act="close" aria-label="Cerrar">×</button></div>
+  <form id="regForm">
+    <div class="row3">
+      <div class="field"><label class="f" for="regC">Centro</label><select id="regC">${C.map(x=>`<option value="${x.id}" ${x.id===c?'selected':''}>${esc(x.nombre)}</option>`).join('')}</select></div>
+      <div class="field"><label class="f" for="regD">Fecha</label><input type="date" id="regD" value="${d}" required></div>
+      <div class="field"><label class="f" for="regH">Horas trabajadas <span class="note">(opcional)</span></label><input type="text" id="regH" inputmode="decimal" placeholder="Ej.: 4,5" class="txt"></div>
+    </div>
+    <div class="info" id="regInfo"></div>
+    <div class="cols2">
+      <div><div class="grp-head"><span class="sw g"></span>Escala de grises</div>${GRIS.map(e=>step(e.id,e.n)).join('')}</div>
+      <div><div class="grp-head"><span class="sw d"></span>Doppler</div>${DOP.map(e=>step(e.id,e.n)).join('')}</div>
+    </div>
+    <details class="how" id="mskBox"><summary>Partes blandas / MSK por región <span class="note" id="mskNote">(opcional, para tu casuística)</span></summary>
+      <div class="cols2">${MSK.map(m=>step(m.id,m.n,'m_'+m.id)).join('')}</div>
+    </details>
+    <div class="modal-foot"><span class="sum" id="regSum"></span><span><button type="button" class="btn" data-act="close">Cancelar</button> <button class="btn primary" type="submit" id="regSave">Guardar día</button></span></div>
+  </form>`,true);
+  loadRegCounts(true);
+  $('#regC').onchange=()=>loadRegCounts(false);
+  $('#regD').onchange=()=>loadRegCounts(false);
+  $('#regForm').addEventListener('input',e=>{if(e.target.type==='number'||e.target.id==='regH')updRegSum();});
+  $('#regForm').onsubmit=ev=>{ev.preventDefault();saveRegistro();};
+}
+function regCounts(){const o={};EXAMS.forEach(ex=>{const v=parseInt($(`#regForm [name="${ex.id}"]`).value,10);if(v>0)o[ex.id]=v;});return o;}
+function regMsk(){const o={};MSK.forEach(m=>{const v=parseInt($(`#regForm [name="m_${m.id}"]`).value,10);if(v>0)o[m.id]=v;});return o;}
+function loadRegCounts(initial){
+  const cid=$('#regC').value,date=$('#regD').value;
+  const isOrig=reg.orig&&reg.orig.cid===cid&&reg.orig.date===date;
+  const existing=date?Store.getDay(cid,date):null;
+  if(initial||!reg.orig){
+    EXAMS.forEach(ex=>{$(`#regForm [name="${ex.id}"]`).value=existing?.counts?.[ex.id]||0;});
+    MSK.forEach(m=>{$(`#regForm [name="m_${m.id}"]`).value=existing?.msk?.[m.id]||0;});
+    $('#regH').value=existing?.horas?String(existing.horas).replace('.',','):'';
+    if(existing&&Object.keys(existing.msk||{}).length)$('#mskBox').open=true;
+  }
+  EXAMS.forEach(ex=>{const p=priceOf(cid,ex.id,date||todayISO());$(`[data-price="${ex.id}"]`).textContent=p==null?'Sin valor':`${money(p)} bruto`;});
+  const info=$('#regInfo');
+  if(!date){info.textContent='Elige una fecha.';}
+  else if(reg.orig&&!isOrig&&existing){info.innerHTML=`<b>${dayTitle(date)}</b> ya tiene registros en este centro: al guardar se sumarán.`;}
+  else if(!reg.orig&&existing){info.innerHTML=`<b>${dayTitle(date)}</b> · ya tenía registros; estás editándolos.`;}
+  else info.innerHTML=`<b>${dayTitle(date)}</b>`;
+  updRegSum();
+}
+function updRegSum(){
+  const cid=$('#regC').value,date=$('#regD').value||todayISO();const counts=regCounts();
+  const s=entryCalc({cid,date,counts,horas:0,msk:{}});
+  $('#regSum').textContent=`${s.total} eco (${s.gris} grises · ${s.dop} Doppler) · ${money(s.liq)} líquido`;
+  EXAMS.forEach(ex=>{const i=$(`#regForm [name="${ex.id}"]`);i.classList.toggle('has',parseInt(i.value,10)>0);});
+  MSK.forEach(m=>{const i=$(`#regForm [name="m_${m.id}"]`);i.classList.toggle('has',parseInt(i.value,10)>0);});
+  const mt=Object.values(regMsk()).reduce((a,b)=>a+b,0),pb=counts.pb||0;
+  const over=mt>pb;
+  $('#mskNote').innerHTML=over?`<span class="warn">Las regiones suman ${mt} y registraste ${pb} de partes blandas / MSK</span>`:pb?`(${mt} de ${pb} con región)`:'(opcional, para tu casuística)';
+  $('#regSave').disabled=over;
+}
+function saveRegistro(){
+  const cid=$('#regC').value,date=$('#regD').value;if(!date){toast('Elige una fecha','err');return;}
+  const counts=regCounts(),msk=regMsk(),horas=parseHours($('#regH').value);
+  if(reg.orig&&(reg.orig.cid!==cid||reg.orig.date!==date)){
+    const ex=Store.getDay(cid,date);
+    if(ex){for(const[k,n]of Object.entries(ex.counts))counts[k]=(counts[k]||0)+n;for(const[k,n]of Object.entries(ex.msk||{}))msk[k]=(msk[k]||0)+n;}
+    Store.setDay(reg.orig.cid,reg.orig.date,{},{horas:0,msk:{}});
+    Store.setDay(cid,date,counts,{horas:horas+(ex?.horas||0),msk});
+  }else Store.setDay(cid,date,counts,{horas,msk});
+  closeModal();ui.ym=date.slice(0,7);if(ui.diasYm!=='all')ui.diasYm=date.slice(0,7);Store.commit();
+  toast(Object.keys(cleanCounts(counts)).length||horas?`Guardado: ${dayTitle(date)}`:'Día sin ecografías: se eliminó el registro');
+}
+
+/* ---------- Exportar ---------- */
+function openExport(){
+  const yms=monthsWithData();
+  if(!yms.length){toast('No hay ecografías para exportar','err');return;}
+  const cur=yms.includes(ui.ym)?ui.ym:yms[yms.length-1];
+  const opt=sel=>yms.map(ym=>`<option value="${ym}" ${ym===sel?'selected':''}>${monthLabel(ym)}</option>`).join('');
+  showModal(`<div class="modal-head"><h2>Exportar ecografías</h2><button class="iconbtn" data-act="close" aria-label="Cerrar">×</button></div>
+  <div class="row3">
+    <div class="field"><label class="f" for="exFrom">Desde</label><select id="exFrom">${opt(cur)}</select></div>
+    <div class="field"><label class="f" for="exTo">Hasta</label><select id="exTo">${opt(cur)}</select></div>
+    <div class="field"><label class="f" for="exC">Centro</label><select id="exC"><option value="all">Todos los centros</option>${Store.centros.map(c=>`<option value="${c.id}" ${ui.cid===c.id?'selected':''}>${esc(c.nombre)}</option>`).join('')}</select></div>
+  </div>
+  <div class="field"><label class="f">Montos en el detalle del mensaje</label><div class="seg"><label><input type="radio" name="exMode" value="liq" checked>Líquidos</label><label><input type="radio" name="exMode" value="bruto">Brutos (para enviar al centro)</label></div></div>
+  <p class="note">Primero va el resumen del período y debajo el desglose de cada día trabajado. Los totales siempre muestran bruto, retención y líquido; el Excel incluye las tres columnas.</p>
+  <div class="bar"><button class="btn primary" data-act="doExport" data-v="xlsx">Descargar Excel</button><button class="btn" data-act="doExport" data-v="msg">Generar mensaje</button><button class="btn" data-act="doExport" data-v="both">Excel + mensaje</button></div>
+  <div id="msgOut"></div>`,true);
+}
+function exportSel(){let a=$('#exFrom').value,b=$('#exTo').value;if(a>b)[a,b]=[b,a];return selFor(a,b,$('#exC').value);}
+function selFor(a,b,cid){
+  const list=validEntries().filter(e=>{const ym=e.date.slice(0,7);return ym>=a&&ym<=b&&(cid==='all'||e.cid===cid);});
+  const period=a===b?monthLabel(a):`${monthLabel(a)} a ${monthLabel(b)}`;
+  return{a,b,cid,list,period};
+}
+function buildMessage(sel,mode){
+  const{T,by}=summarize(sel.list);const cids=Object.keys(by);const L=[];const liq=mode!=='bruto';
+  L.push(`Ecografías — ${sel.period}`);
+  if(sel.cid!=='all')L.push(`Centro: ${centro(sel.cid).nombre}`);
+  cids.forEach(cid=>{
+    const b=by[cid];
+    L.push('');if(sel.cid==='all')L.push(`▸ ${centro(cid).nombre}`);
+    for(const[g,lab]of[['gris','Escala de grises'],['doppler','Doppler']]){
+      const rs=EXAMS.filter(e=>e.g===g&&b.ex[e.id]);if(!rs.length)continue;
+      L.push(`${lab} (${g==='gris'?b.gris:b.dop}):`);
+      rs.forEach(e=>{const x=b.ex[e.id];
+        if(x.miss&&!x.bruto){L.push(`• ${e.n}: ${x.n} (sin valor)`);return;}
+        const unit=x.prices.size===1?[...x.prices][0]:null;
+        L.push(liq?`• ${e.n}: ${x.n} → ${money(x.liq)} líquido`:`• ${e.n}: ${x.n}${unit!=null?` × ${money(unit)}`:''} = ${money(x.bruto)}`);});
+    }
+    L.push(`Total: ${b.total} ecografías · ${b.dates.size} ${b.dates.size===1?'día':'días'}${b.horas?` · ${hFmt(b.horas)}`:''}`);
+    L.push(`Bruto ${money(b.bruto)} · ${rateLabel(b)} ${money(b.ret)} · Líquido ${money(b.liq)}`);
+  });
+  if(cids.length>1){L.push('');L.push(`TOTAL GENERAL: ${T.total} ecografías (${T.gris} grises, ${T.dop} Doppler)`);L.push(`Bruto ${money(T.bruto)} · ${rateLabel(T)} ${money(T.ret)} · Líquido ${money(T.liq)}`);}
+  if(T.sinValor)L.push(`(${T.sinValor} sin valor definido, no incluidas en los montos)`);
+  L.push('');L.push(`Desglose por día (${liq?'líquido':'bruto'})`);
+  sel.list.forEach(e=>{const s=entryCalc(e);L.push(`• ${shortDay(e.date)}${sel.cid==='all'&&cids.length>1?` [${centro(e.cid).nombre}]`:''}${e.horas?` (${hFmt(e.horas)})`:''}: ${detailText(e.counts)} → ${s.total} · ${money(liq?s.liq:s.bruto)}`);});
+  return L.join('\n');
+}
+function splitGD(list,cid){const sg=newAcc(),sd=newAcc();list.filter(e=>e.cid===cid).forEach(e=>{const cg={},cd={};for(const[k,n]of Object.entries(e.counts))(EX[k].g==='gris'?cg:cd)[k]=n;addEntry(sg,{...e,counts:cg,horas:0,msk:{}});addEntry(sd,{...e,counts:cd,horas:0,msk:{}});});return[sg,sd];}
+function buildWorkbook(sel){
+  const{T,by}=summarize(sel.list);const cids=Object.keys(by);
+  const aoa=[],moneyCells=[];const put=(row,mcols=[])=>{mcols.forEach(c=>moneyCells.push([aoa.length,c]));aoa.push(row);};
+  put(['Ecografías — resumen']);put(['Período',sel.period]);put(['Centro',sel.cid==='all'?'Todos los centros':centro(sel.cid).nombre]);put([]);
+  cids.forEach(cid=>{
+    const b=by[cid];
+    put([centro(cid).nombre,'',`${b.dates.size} ${b.dates.size===1?'día trabajado':'días trabajados'}${b.horas?` · ${hFmt(b.horas)}`:''}`,'',cap(rateLabel(b))]);
+    put(['Tipo','Examen','Cantidad','Valor unitario bruto','Bruto','Retención','Líquido']);
+    for(const g of['gris','doppler']){
+      EXAMS.filter(e=>e.g===g&&b.ex[e.id]).forEach(e=>{const x=b.ex[e.id];const unit=x.prices.size===1?[...x.prices][0]:x.prices.size?'varía':'sin valor';
+        put([g==='gris'?'Grises':'Doppler',e.n,x.n,unit,x.bruto||'',x.bruto?x.ret:'',x.bruto?x.liq:''],[3,4,5,6]);});
+    }
+    const[sg,sd]=splitGD(sel.list,cid);
+    put(['','Subtotal grises',b.gris,'',sg.bruto,sg.ret,sg.liq],[4,5,6]);put(['','Subtotal Doppler',b.dop,'',sd.bruto,sd.ret,sd.liq],[4,5,6]);put(['','Total',b.total,'',b.bruto,b.ret,b.liq],[4,5,6]);
+    put([]);
+  });
+  if(cids.length>1){put(['TOTAL GENERAL','',T.total,'',T.bruto,T.ret,T.liq],[4,5,6]);put(['','Grises',T.gris]);put(['','Doppler',T.dop]);put([]);}
+  if(T.sinValor){put([`${T.sinValor} ecografías sin valor definido (no incluidas en montos)`]);put([]);}
+  put(['Desglose por día']);
+  put(['Fecha','Día','Centro','Horas','Detalle','Grises','Doppler','Total','Bruto','Retención','Líquido']);
+  sel.list.forEach(e=>{const s=entryCalc(e);const d=isoToDate(e.date);put([`${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}`,cap(DIAS[d.getDay()]),centro(e.cid).nombre,e.horas||'',detailText(e.counts),s.gris,s.dop,s.total,s.bruto,s.ret,s.liq],[8,9,10]);});
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  moneyCells.forEach(([r,c])=>{const a=XLSX.utils.encode_cell({r,c});if(ws[a]&&typeof ws[a].v==='number')ws[a].z='"$"#,##0';});
+  ws['!cols']=[{wch:22},{wch:36},{wch:22},{wch:18},{wch:40},{wch:12},{wch:12},{wch:9},{wch:13},{wch:13},{wch:13}];
+  const head=['Fecha','Centro','Horas',...EXAMS.map(e=>e.n),'Grises','Doppler','Total','Bruto','Retención','Líquido'];
+  const rows=[head];
+  sel.list.forEach(e=>{const s=entryCalc(e);rows.push([e.date,centro(e.cid).nombre,e.horas||'',...EXAMS.map(x=>e.counts[x.id]||0),s.gris,s.dop,s.total,s.bruto,s.ret,s.liq]);});
+  const ws2=XLSX.utils.aoa_to_sheet(rows);
+  for(let r=1;r<rows.length;r++)for(let c=head.length-3;c<head.length;c++){const a=XLSX.utils.encode_cell({r,c});if(ws2[a])ws2[a].z='"$"#,##0';}
+  ws2['!cols']=head.map((h,i)=>({wch:i<2?14:Math.min(Math.max(h.length,8),18)}));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Resumen');XLSX.utils.book_append_sheet(wb,ws2,'Detalle diario');
+  return new Blob([XLSX.write(wb,{bookType:'xlsx',type:'array'})],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function buildCasuWorkbook(){
+  const{from,to,list}=casuList();const{A,years,mskTot,pb}=casuData(list);
+  const aoa=[['Casuística de ecografía'],['Período',from===to?monthLabel(from):`${monthLabel(from)} a ${monthLabel(to)}`],['Centro',ui.caCid==='all'?'Todos los centros':centro(ui.caCid).nombre],['Días de trabajo',A.dates.size],[],['Tipo','Examen','Cantidad','% del total']];
+  const pctRows=[];
+  for(const g of['gris','doppler'])EXAMS.filter(e=>e.g===g&&A.ex[e.id]).forEach(e=>{pctRows.push(aoa.length);aoa.push([g==='gris'?'Grises':'Doppler',e.n,A.ex[e.id].n,A.total?A.ex[e.id].n/A.total:0]);});
+  aoa.push(['','Total',A.total]);
+  if(pb){aoa.push([],['Partes blandas / MSK por región'],['Región','Cantidad']);MSK.filter(m=>A.msk[m.id]).forEach(m=>aoa.push([m.n,A.msk[m.id]]));if(pb-mskTot>0)aoa.push(['Sin región especificada',pb-mskTot]);aoa.push(['Total',pb]);}
+  aoa.push([],['Por año'],['Año','Días','Grises','Doppler','Total']);
+  Object.keys(years).sort().forEach(y=>aoa.push([y,years[y].dias.size,years[y].gris,years[y].dop,years[y].gris+years[y].dop]));
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  pctRows.forEach(r=>{const a=XLSX.utils.encode_cell({r,c:3});if(ws[a])ws[a].z='0.0%';});
+  ws['!cols']=[{wch:30},{wch:38},{wch:10},{wch:12},{wch:8}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Casuística');
+  return{blob:new Blob([XLSX.write(wb,{bookType:'xlsx',type:'array'})]),name:`casuistica_ecografia_${from}_a_${to}.xlsx`};
+}
+async function saveFile(filename,data){
+  const blob=data instanceof Blob?data:new Blob([data],{type:filename.endsWith('.json')?'application/json':'text/plain'});
+  try{const file=new File([blob],filename,{type:blob.type||'application/octet-stream'});
+    if(/iPhone|iPad|iPod/.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:filename});return true;}}
+  catch(e){if(e&&e.name==='AbortError')return false;}
+  try{const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);return true;}
+  catch(e){toast('No se pudo descargar el archivo','err');return false;}
+}
+function fileTag(sel){const c=sel.cid==='all'?'todos':norm(centro(sel.cid).nombre).replace(/ /g,'-');return `ecografias_${c}_${sel.a}${sel.a!==sel.b?'_a_'+sel.b:''}`;}
+async function doExport(kind){
+  const sel=exportSel();
+  if(!sel.list.length){toast('No hay ecografías en ese período','err');return;}
+  if(kind==='msg'||kind==='both'){
+    const mode=document.querySelector('[name=exMode]:checked')?.value||'liq';
+    const txt=buildMessage(sel,mode);
+    $('#msgOut').innerHTML=`<div class="field" style="margin-top:12px"><label class="f" for="msgTxt">Mensaje</label><textarea id="msgTxt" readonly>${esc(txt)}</textarea></div><div class="bar"><button class="btn primary" data-act="copyMsg">Copiar mensaje</button><button class="btn" data-act="dlMsg">Descargar .txt</button></div>`;
+  }
+  if(kind==='xlsx'||kind==='both'){
+    if(!window.XLSX){toast('No se pudo cargar el generador de Excel.','err');return;}
+    const ok=await saveFile(fileTag(sel)+'.xlsx',buildWorkbook(sel));if(ok)toast('Excel generado');
+  }
+}
+async function copyText(txt,okMsg){try{await navigator.clipboard.writeText(txt);toast(okMsg);return true;}catch(e){const t=document.createElement('textarea');t.value=txt;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();let ok=false;try{ok=document.execCommand('copy');}catch(_){}t.remove();toast(ok?okMsg:'No se pudo copiar automáticamente',ok?'':'err');return ok;}}
+
+/* ---------- Importar Excel ---------- */
+let imp=null;
+function openImport(){
+  if(!Store.centros.length){openNewCenter();return;}
+  if(!window.XLSX){toast('No se pudo cargar el lector de Excel.','err');return;}
+  imp=null;
+  showModal(`<div class="modal-head"><h2>Importar Excel</h2><button class="iconbtn" data-act="close" aria-label="Cerrar">×</button></div>
+  <p class="note">Acepta .xlsx, .xls o .csv. Sirven dos formatos: una fila por examen (fecha + descripción, opcionalmente cantidad) o una tabla por día con una columna por tipo de ecografía. Solo se guardan fechas y conteos: nombres, RUT u otros datos del archivo se ignoran.</p>
+  <div class="field"><label class="btn primary">Elegir archivo<input type="file" id="impFile" accept=".xlsx,.xls,.csv" hidden></label> <span id="impName" class="note"></span></div>
+  <div id="impBody"></div>`,true);
+  $('#impFile').onchange=async ev=>{const f=ev.target.files[0];if(!f)return;$('#impName').textContent=f.name;
+    try{const buf=await f.arrayBuffer();const wb=XLSX.read(buf,{type:'array',cellDates:false});imp={wb,sheet:wb.SheetNames[0],map:{},cid:ui.cid!=='all'?ui.cid:Store.centros[0].id,merge:'sumar',fixedDate:''};analyzeSheet();renderImport();}
+    catch(e){console.error(e);$('#impBody').innerHTML='<p class="warn">No se pudo leer el archivo. Verifica que sea un Excel o CSV válido.</p>';}};
+}
+function analyzeSheet(){
+  const ws=imp.wb.Sheets[imp.sheet];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
+  imp.rows=rows;imp.ncol=rows.reduce((m,r)=>Math.max(m,r.length),0);
+  let h=0;for(let i=0;i<Math.min(rows.length,25);i++){const r=rows[i];const strs=r.filter(v=>typeof v==='string'&&v.trim()&&!parseDate(v)).length;const filled=r.filter(v=>v!==''&&v!=null).length;if(filled>=2&&strs>=Math.max(2,filled*0.6)){h=i;break;}}
+  imp.header=h;
+  const heads=(rows[h]||[]).map(v=>String(v??''));
+  imp.heads=heads;
+  const body=rows.slice(h+1,h+301);
+  const dateScore=c=>body.reduce((a,r)=>a+(parseDate(r[c])?1:0),0)+(/fecha|date|dia/i.test(heads[c]||'')?3:0);
+  const recScore=c=>body.reduce((a,r)=>a+(typeof r[c]==='string'&&recognize(r[c])?1:0),0);
+  let best=-1,bs=0;for(let c=0;c<imp.ncol;c++){const s=dateScore(c);if(s>bs){bs=s;best=c;}}imp.colDate=best;
+  let be=-1,bes=0;for(let c=0;c<imp.ncol;c++){if(c===best)continue;const s=recScore(c);if(s>bes){bes=s;be=c;}}
+  if(be<0){let ml=0;for(let c=0;c<imp.ncol;c++){if(c===best)continue;const l=body.reduce((a,r)=>a+(typeof r[c]==='string'?r[c].length:0),0);if(l>ml){ml=l;be=c;}}}
+  imp.colExam=be;
+  imp.colQty=-1;for(let c=0;c<imp.ncol;c++){if(/cant|n°|nº|numero|qty|unidades/i.test(heads[c]||'')&&body.some(r=>isFinite(toNum(r[c]))&&toNum(r[c])>0)){imp.colQty=c;break;}}
+  const recHeads=heads.map((x,c)=>c!==best&&recognize(x)?c:-1).filter(c=>c>=0);
+  imp.mode=recHeads.length>=2?'matriz':'filas';
+  imp.map={};
+}
+function colLabel(c){const h=imp.heads[c];return `${XLSX.utils.encode_col(c)}${h?` · ${String(h).slice(0,30)}`:''}`;}
+function colOptions(sel,allowNone,noneLabel){let o=allowNone?`<option value="-1" ${sel===-1?'selected':''}>${noneLabel}</option>`:'';for(let c=0;c<imp.ncol;c++)o+=`<option value="${c}" ${sel===c?'selected':''}>${esc(colLabel(c))}</option>`;return o;}
+function examOptions(sel){return `<option value="" ${!sel?'selected':''}>Ignorar</option><optgroup label="Escala de grises">${GRIS.map(e=>`<option value="${e.id}" ${sel===e.id?'selected':''}>${esc(e.n)}</option>`).join('')}</optgroup><optgroup label="Doppler">${DOP.map(e=>`<option value="${e.id}" ${sel===e.id?'selected':''}>${esc(e.n)}</option>`).join('')}</optgroup>`;}
+function autoGuess(text){const k=norm(text);if(Store.alias[k]!==undefined)return Store.alias[k]||'';return recognize(text)||'';}
+function computeImport(){
+  const res={byDate:{},total:0,skippedDate:0,uniques:{}};
+  const rows=imp.rows.slice(imp.header+1);
+  const add=(date,eid,n)=>{const d=res.byDate[date]||(res.byDate[date]={});d[eid]=(d[eid]||0)+n;res.total+=n;};
+  rows.forEach(r=>{
+    if(!r||!r.some(v=>v!==''&&v!=null))return;
+    const date=imp.fixedDate||(imp.colDate>=0?parseDate(r[imp.colDate]):null);
+    if(imp.mode==='filas'){
+      const desc=imp.colExam>=0?String(r[imp.colExam]??'').trim():'';if(!desc)return;
+      const k=norm(desc);let n=imp.colQty>=0?toNum(r[imp.colQty]):1;if(!isFinite(n))n=1;n=Math.round(n);if(n<=0)return;
+      const u=res.uniques[k]||(res.uniques[k]={k,desc,n:0,guess:autoGuess(desc)});u.n+=n;
+      const eid=imp.map[k]!==undefined?imp.map[k]:u.guess;
+      if(!date){res.skippedDate+=n;return;}
+      if(eid)add(date,eid,n);
+    }else{
+      for(let c=0;c<imp.ncol;c++){if(c===imp.colDate)continue;const eid=imp.map['c'+c]!==undefined?imp.map['c'+c]:autoGuess(imp.heads[c]);if(!eid)continue;const n=Math.round(toNum(r[c]));if(!(n>0))continue;if(!date){res.skippedDate+=n;continue;}add(date,eid,n);}
+    }
+  });
+  return res;
+}
+function renderImport(){
+  const res=computeImport();
+  const dates=Object.keys(res.byDate).sort();
+  const existing=dates.filter(d=>Store.get(imp.cid,d)).length;
+  let mapping='';
+  if(imp.mode==='filas'){
+    const us=Object.values(res.uniques).sort((a,b)=>b.n-a.n);
+    const unrec=us.filter(u=>!(imp.map[u.k]!==undefined?imp.map[u.k]:u.guess)).length;
+    mapping=`<h3>Descripciones encontradas (${us.length})</h3>${unrec?`<p class="warn">${unrec} sin reconocer: asígnalas o quedarán fuera.</p>`:''}
+    <div class="tbl-wrap"><table><thead><tr><th>Descripción en el Excel</th><th class="num">Cant.</th><th>Se registra como</th></tr></thead><tbody>
+    ${us.map(u=>{const v=imp.map[u.k]!==undefined?imp.map[u.k]:u.guess;return `<tr><td style="white-space:normal">${esc(u.desc)}</td><td class="num">${u.n}</td><td><select class="map ${v?'':'none'}" data-map="${esc(u.k)}">${examOptions(v)}</select></td></tr>`;}).join('')}
+    </tbody></table></div>`;
+  }else{
+    const cols=[];for(let c=0;c<imp.ncol;c++)if(c!==imp.colDate)cols.push(c);
+    mapping=`<h3>Columnas del Excel</h3><div class="tbl-wrap"><table><thead><tr><th>Columna</th><th>Se registra como</th></tr></thead><tbody>
+    ${cols.map(c=>{const v=imp.map['c'+c]!==undefined?imp.map['c'+c]:autoGuess(imp.heads[c]);return `<tr><td>${esc(colLabel(c))}</td><td><select class="map ${v?'':'none'}" data-map="c${c}">${examOptions(v)}</select></td></tr>`;}).join('')}
+    </tbody></table></div>`;
+  }
+  const byG={gris:0,dop:0};Object.values(res.byDate).forEach(d=>{for(const[k,n]of Object.entries(d))EX[k].g==='gris'?byG.gris+=n:byG.dop+=n;});
+  $('#impBody').innerHTML=`
+  <div class="row3">
+    ${imp.wb.SheetNames.length>1?`<div class="field"><label class="f" for="impSheet">Hoja</label><select id="impSheet">${imp.wb.SheetNames.map(s=>`<option ${s===imp.sheet?'selected':''}>${esc(s)}</option>`).join('')}</select></div>`:''}
+    <div class="field"><label class="f" for="impC">Importar al centro</label><select id="impC">${Store.centros.map(c=>`<option value="${c.id}" ${c.id===imp.cid?'selected':''}>${esc(c.nombre)}</option>`).join('')}</select></div>
+    <div class="field"><label class="f">Formato</label><div class="seg"><label><input type="radio" name="impMode" value="filas" ${imp.mode==='filas'?'checked':''}>Fila por examen</label><label><input type="radio" name="impMode" value="matriz" ${imp.mode==='matriz'?'checked':''}>Tabla por día</label></div></div>
+  </div>
+  <div class="row3">
+    <div class="field"><label class="f" for="impDate">Columna de fecha</label><select id="impDate">${colOptions(imp.fixedDate?-1:imp.colDate,true,'Usar una fecha fija')}</select></div>
+    ${imp.fixedDate||imp.colDate<0?`<div class="field"><label class="f" for="impFixed">Fecha fija</label><input type="date" id="impFixed" value="${imp.fixedDate}"></div>`:''}
+    ${imp.mode==='filas'?`<div class="field"><label class="f" for="impExam">Columna de examen</label><select id="impExam">${colOptions(imp.colExam,false)}</select></div>
+    <div class="field"><label class="f" for="impQty">Columna de cantidad</label><select id="impQty">${colOptions(imp.colQty,true,'Ninguna (1 por fila)')}</select></div>`:''}
+  </div>
+  <div class="field"><label class="f">Si un día ya tiene registros</label><div class="seg"><label><input type="radio" name="impMerge" value="sumar" ${imp.merge==='sumar'?'checked':''}>Sumar</label><label><input type="radio" name="impMerge" value="reemplazar" ${imp.merge==='reemplazar'?'checked':''}>Reemplazar el día</label></div></div>
+  ${mapping}
+  <div class="modal-foot">
+    <span><span class="sum">${res.total} ecografías · ${dates.length} días</span> <span class="note">(${byG.gris} grises, ${byG.dop} Doppler${dates.length?` · ${shortDay(dates[0])} a ${shortDay(dates[dates.length-1])}`:''})</span>
+      ${res.skippedDate?`<br><span class="warn">${res.skippedDate} sin fecha válida, se omiten.</span>`:''}${existing?`<br><span class="note">${existing} ${existing===1?'día ya tenía':'días ya tenían'} registros en este centro.</span>`:''}</span>
+    <span><button class="btn" data-act="close">Cancelar</button> <button class="btn primary" data-act="doImport" ${res.total?'':'disabled'}>Importar ${res.total} ecografías</button></span>
+  </div>`;
+  const b=$('#impBody');
+  b.querySelector('#impSheet')?.addEventListener('change',e=>{imp.sheet=e.target.value;analyzeSheet();renderImport();});
+  b.querySelector('#impC').onchange=e=>{imp.cid=e.target.value;renderImport();};
+  b.querySelectorAll('[name=impMode]').forEach(r=>r.onchange=e=>{imp.mode=e.target.value;imp.map={};renderImport();});
+  b.querySelectorAll('[name=impMerge]').forEach(r=>r.onchange=e=>{imp.merge=e.target.value;});
+  b.querySelector('#impDate').onchange=e=>{const v=+e.target.value;if(v<0){imp.fixedDate=imp.fixedDate||todayISO();}else{imp.fixedDate='';imp.colDate=v;}renderImport();};
+  b.querySelector('#impFixed')?.addEventListener('change',e=>{imp.fixedDate=e.target.value;renderImport();});
+  b.querySelector('#impExam')?.addEventListener('change',e=>{imp.colExam=+e.target.value;imp.map={};renderImport();});
+  b.querySelector('#impQty')?.addEventListener('change',e=>{imp.colQty=+e.target.value;renderImport();});
+  b.querySelectorAll('select[data-map]').forEach(s=>s.onchange=e=>{imp.map[e.target.dataset.map]=e.target.value;renderImport();});
+}
+function doImport(){
+  const res=computeImport();
+  for(const[date,counts]of Object.entries(res.byDate)){
+    let c=counts;if(imp.merge==='sumar'){const ex=Store.get(imp.cid,date);if(ex){c={...ex};for(const[k,n]of Object.entries(counts))c[k]=(c[k]||0)+n;}}
+    Store.setDay(imp.cid,date,c);
+  }
+  if(imp.mode==='filas'){for(const[k,v]of Object.entries(imp.map)){const auto=recognize(res.uniques[k]?.desc||'')||'';if(v!==auto)Store.setAlias(k,v);else if(Store.alias[k]!==undefined)Store.delAlias(k);}}
+  else{for(const[k,v]of Object.entries(imp.map)){const c=+k.slice(1);const t=norm(imp.heads[c]);if(!t)continue;const auto=recognize(imp.heads[c])||'';if(v!==auto)Store.setAlias(t,v);}}
+  const dates=Object.keys(res.byDate).sort();
+  closeModal();if(dates.length)ui.ym=dates[dates.length-1].slice(0,7);ui.tab='inicio';Store.commit();
+  toast(`Importadas ${res.total} ecografías en ${dates.length} días`);
+}
+
+/* ---------- Valores, tasas y ajustes ---------- */
+function savePrices(form){
+  const c=clone(centro(ui.valCid));const p={};
+  EXAMS.forEach(ex=>{const raw=form.elements[ex.id].value.trim();if(raw==='')return;const n=Math.round(toNum(raw.replace(/\$/g,'')));if(isFinite(n)&&n>=0)p[ex.id]=n;});
+  c.tarifas[ui.tarIdx].precios=p;Store.saveCenter(c);document.activeElement?.blur?.();Store.commit();
+  const d=c.tarifas[ui.tarIdx].desde;toast(`Valores guardados para ${c.nombre}${d===INICIO?'':` (desde ${fechaCorta(d)})`}`);
+}
+function saveTasas(form){
+  const t={};for(const el of form.elements){if(!el.name)continue;const v=parseFloat(String(el.value).replace(',','.'));if(isFinite(v)&&v>=0&&v<100)t[el.name]=v;}
+  Store.setTasas(t);document.activeElement?.blur?.();Store.commit();toast('Tasas guardadas');
+}
+async function saveSync(){
+  const url=$('#setUrl').value.trim(),token=$('#setToken').value.trim();
+  if(!/^https:\/\/script\.google(usercontent)?\.com\/.+\/exec$/.test(url)){toast('La dirección debe ser la de Apps Script y terminar en /exec','err');return;}
+  if(!token){toast('Falta el token','err');return;}
+  toast('Probando conexión…');
+  try{await Sync.ping(url,token);}catch(e){toast('No se pudo conectar: '+e.message,'err');return;}
+  const changed=url!==Store.settings.url;
+  Store.settings.url=url;Store.settings.token=token;
+  if(changed){Store.cursor=0;Object.keys(Store.recs).forEach(id=>Store.pending[id]=1);}
+  Store.persist();document.activeElement?.blur?.();render();toast('Conexión correcta');Sync.run(true);
+}
+function linkCode(){return btoa(unescape(encodeURIComponent(JSON.stringify({app:'ecografias',u:Store.settings.url,t:Store.settings.token}))));}
+async function useCode(){
+  const raw=$('#pasteCode').value.trim();if(!raw)return;
+  let d;try{d=JSON.parse(decodeURIComponent(escape(atob(raw))));}catch(e){toast('El código no es válido','err');return;}
+  if(d.app!=='ecografias'||!d.u||!d.t){toast('El código no es de esta app','err');return;}
+  $('#setUrl').value=d.u;$('#setToken').value=d.t;await saveSync();
+}
+async function doBackup(){if(await saveFile(`ecografias_datos_${todayISO()}.json`,JSON.stringify(Store.backupData(),null,1)))toast('Datos exportados');}
+async function doRestore(file){
+  let d;try{d=JSON.parse(await file.text());if(d.app!=='ecografias'&&!(d.config&&d.meses))throw new Error();}catch(e){toast('El archivo no es un respaldo válido de esta app','err');return;}
+  showModal(`<div class="modal-head"><h2>Importar datos</h2><button class="iconbtn" data-act="close" aria-label="Cerrar">×</button></div>
+  <p>¿Qué hago con los datos que ya tienes?</p>
+  <div class="bar"><button class="btn primary" id="rsMerge">Combinar</button><button class="btn danger" id="rsRepl">Reemplazar todo</button></div>
+  <p class="note"><b>Combinar</b> agrega los centros y días del archivo; si un mismo día existe en ambos, queda el del archivo. <b>Reemplazar todo</b> borra lo actual antes de importar${Sync.configured()?', también en tus otros dispositivos':''}.</p>`);
+  $('#rsMerge').onclick=()=>{Store.restore(d,'combinar');closeModal();Store.commit();toast('Datos importados');};
+  $('#rsRepl').onclick=()=>{closeModal();confirmModal('Reemplazar todo','Se borrarán tus datos actuales y quedarán solo los del archivo.','Reemplazar',()=>{Store.restore(d,'reemplazar');Store.commit();toast('Datos reemplazados');});};
+}
+function exportAll(){const yms=monthsWithData();if(!yms.length){toast('No hay ecografías para exportar','err');return;}const sel=selFor(yms[0],yms[yms.length-1],'all');saveFile(fileTag(sel)+'.xlsx',buildWorkbook(sel)).then(ok=>ok&&toast('Excel generado'));}
+
+/* ---------- Eventos ---------- */
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-act]');if(!t)return;
+  const a=t.dataset.act,v=t.dataset.v;
+  if(a==='overlay'){if(e.target===t)closeModal();return;}
+  switch(a){
+    case 'tab':ui.tab=v;render();window.scrollTo(0,0);break;
+    case 'filter':ui.cid=v;render();break;
+    case 'diasCid':ui.diasCid=v;render();break;
+    case 'caCid':ui.caCid=v;render();break;
+    case 'valCid':ui.valCid=v;ui.tarIdx=null;render();break;
+    case 'tarIdx':ui.tarIdx=+v;render();break;
+    case 'newTarifa':openTarifa(null);break;
+    case 'editTarifa':openTarifa(ui.tarIdx);break;
+    case 'delTarifa':{const c=centro(ui.valCid);const tf=c.tarifas[ui.tarIdx];confirmModal('Eliminar tarifa',`Los días desde el ${fechaCorta(tf.desde)} pasarán a usar la tarifa anterior.`,'Eliminar',()=>{const x=clone(c);x.tarifas.splice(ui.tarIdx,1);Store.saveCenter(x);ui.tarIdx=null;Store.commit();toast('Tarifa eliminada');});break;}
+    case 'ym':ui.ym=shiftYM(ui.ym,+v);render();break;
+    case 'pickYm':ui.ym=v;render();window.scrollTo({top:0,behavior:'smooth'});break;
+    case 'newCenter':openNewCenter();break;
+    case 'register':openRegistro();break;
+    case 'import':openImport();break;
+    case 'export':openExport();break;
+    case 'goValores':ui.tab='valores';if(ui.cid!=='all'){ui.valCid=ui.cid;ui.tarIdx=null;}render();window.scrollTo(0,0);break;
+    case 'close':closeModal();break;
+    case 'inc':case 'dec':{const i=$(`#regForm [name="${v}"]`);i.value=Math.max(0,(parseInt(i.value,10)||0)+(a==='inc'?1:-1));updRegSum();break;}
+    case 'editDay':openRegistro(t.dataset.c,t.dataset.d,true);break;
+    case 'delDay':{const c=t.dataset.c,d=t.dataset.d;confirmModal('Eliminar día',`Se eliminarán las ecografías del <b>${esc(dayTitle(d))}</b> en ${esc(centro(c).nombre)}.`,'Eliminar',()=>{Store.setDay(c,d,{},{horas:0,msk:{}});Store.commit();toast('Día eliminado');});break;}
+    case 'renameCenter':{const n=$('#cName').value.trim();if(!n)return;const c=clone(centro(ui.valCid));c.nombre=n;Store.saveCenter(c);document.activeElement?.blur?.();Store.commit();toast('Nombre actualizado');break;}
+    case 'delCenter':{const c=centro(ui.valCid);const n=validEntries().filter(e=>e.cid===c.id).length;confirmModal('Eliminar centro',`Se eliminará <b>${esc(c.nombre)}</b>, sus tarifas y ${n} ${n===1?'día registrado':'días registrados'}. Esta acción no se puede deshacer.`,'Eliminar centro',()=>{
+      Store.deleteCenter(c.id);if(ui.cid===c.id)ui.cid='all';if(ui.diasCid===c.id)ui.diasCid='all';if(ui.caCid===c.id)ui.caCid='all';ui.valCid=null;Store.commit();toast('Centro eliminado');});break;}
+    case 'doExport':doExport(v);break;
+    case 'exportCasu':{if(!window.XLSX){toast('No se pudo cargar el generador de Excel.','err');break;}const r=buildCasuWorkbook();saveFile(r.name,r.blob).then(ok=>ok&&toast('Casuística exportada'));break;}
+    case 'copyMsg':copyText($('#msgTxt').value,'Mensaje copiado');break;
+    case 'dlMsg':{const s=exportSel();saveFile(fileTag(s)+'.txt',$('#msgTxt').value);break;}
+    case 'doImport':doImport();break;
+    case 'sync':Sync.run(true);break;
+    case 'saveSync':saveSync();break;
+    case 'unlink':confirmModal('Desconectar este dispositivo','Tus datos se quedan en este dispositivo y en la hoja, pero dejarán de sincronizarse aquí.','Desconectar',()=>{Store.settings.url='';Store.settings.token='';Store.cursor=0;Store.persist();Sync.state='idle';render();});break;
+    case 'copyCode':copyText(linkCode(),'Código copiado');break;
+    case 'useCode':useCode();break;
+    case 'copyUrl':copyText(Store.settings.url,'Dirección copiada');break;
+    case 'copyToken':copyText(Store.settings.token,'Token copiado');break;
+    case 'copyExams':copyText(EXAMS.map(e=>e.n).join('\n'),'Lista de exámenes copiada');break;
+    case 'copyCenters':copyText(Store.centros.map(c=>c.nombre).join('\n'),'Lista de centros copiada');break;
+    case 'resetTasas':Store.setTasas({...TASAS_DEF});Store.commit();toast('Tasas restablecidas');break;
+    case 'checkUpdate':Upd.check(true);break;
+    case 'applyUpdate':Upd.apply();break;
+    case 'backup':doBackup();break;
+    case 'exportAll':exportAll();break;
+    case 'resync':Store.cursor=0;Store.persist();Sync.run(true);break;
+    case 'wipe':confirmModal('Empezar de cero',`Se borrarán todos tus centros, tarifas y días${Sync.configured()?' en este dispositivo, en la hoja y en tus otros dispositivos':''}. Te recomendamos exportar tus datos antes.`,'Borrar todo',()=>{Store.wipe();ui.cid='all';ui.valCid=null;Store.commit();toast('Datos borrados');},'BORRAR');break;
+  }
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.id==='diasYm'){ui.diasYm=t.value;render();}
+  else if(t.id==='caFrom'){ui.caFrom=t.value;t.blur();render();}
+  else if(t.id==='caTo'){ui.caTo=t.value;t.blur();render();}
+  else if(t.id==='restoreFile'&&t.files[0]){doRestore(t.files[0]);t.value='';}
+  else if(t.id==='cBoleta'){const c=clone(centro(ui.valCid));c.boleta=t.checked;Store.saveCenter(c);t.blur();Store.commit();toast(t.checked?'Se descontará la retención en este centro':'Este centro ya no descuenta retención');}
+  else if(t.id==='copyFrom'&&t.value){const src=centro(t.value);const pr=src.tarifas[tarifaIdx(src,todayISO())].precios;const f=$('#pricesForm');EXAMS.forEach(ex=>{const p=pr[ex.id];f.elements[ex.id].value=p!=null?intFmt.format(p):'';});toast(`Valores copiados de ${src.nombre}. Revisa y guarda.`);}
+  else if(t.name==='theme'){Store.settings.theme=t.value;Store.persist();applyTheme();}
+});
+document.addEventListener('submit',e=>{if(e.target.id==='pricesForm'){e.preventDefault();savePrices(e.target);}else if(e.target.id==='tasasForm'){e.preventDefault();saveTasas(e.target);}});
+document.addEventListener('focusout',e=>{
+  const t=e.target;
+  if(t.classList&&t.classList.contains('price')){const n=Math.round(toNum(t.value.replace(/\$/g,'')));if(t.value.trim()&&isFinite(n))t.value=intFmt.format(n);}
+  setTimeout(()=>{if(ui.needsRender&&!modalOpen()){const a=document.activeElement;if(!(a&&a.closest&&a.closest('#app')&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)))render();}},0);
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&modalOpen()){closeModal();return;}
+  if(!(e.metaKey||e.ctrlKey)||modalOpen())return;
+  const inField=/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'');
+  const k=e.key.toLowerCase();
+  if(k==='n'){e.preventDefault();openRegistro();}
+  else if(k==='r'){e.preventDefault();Sync.run(true);}
+  else if(k==='e'){e.preventDefault();openExport();}
+  else if(k==='i'){e.preventDefault();openImport();}
+  else if(/^[1-5]$/.test(k)){e.preventDefault();ui.tab=TABS[+k-1][0];render();}
+  else if(!inField&&(k==='arrowleft'||k==='arrowright')&&ui.tab==='inicio'){e.preventDefault();ui.ym=shiftYM(ui.ym,k==='arrowleft'?-1:1);render();}
+});
+
+/* ---------- Arranque ---------- */
+Store.load();applyTheme();render();
+window.addEventListener('online',()=>{Sync.run(false);renderStatus();});
+window.addEventListener('offline',()=>{Sync.state='offline';renderStatus();});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&Date.now()-(Store.settings.lastSync||0)>60000)Sync.run(false);});
+setInterval(()=>Sync.run(false),15*60*1000);
+Sync.run(false);
+if(navigator.onLine)Upd.check(false);
+if('serviceWorker' in navigator&&location.protocol==='https:'){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
+if(navigator.storage&&navigator.storage.persist){navigator.storage.persist().catch(()=>{});}
+
+</script>
+</body>
+</html>
