@@ -9,7 +9,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="xlsx.full.min.js"></script>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="favicon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -276,7 +277,7 @@ function recognize(raw){
 }
 
 /* ---------- Versión ---------- */
-const APP_VERSION=3;
+const APP_VERSION=4;
 
 /* ---------- Constantes nuevas ---------- */
 const TASAS_DEF={2020:10.75,2021:11.5,2022:12.25,2023:13,2024:13.75,2025:14.5,2026:15.25,2027:16,2028:17};
@@ -380,12 +381,20 @@ const Store={
 const centro=id=>Store.centros.find(c=>c.id===id);
 
 /* ---------- Sincronización ---------- */
+function netMsg(){
+  if(!navigator.onLine)return 'no hay conexión a internet';
+  if(location.protocol==='file:'||!/github\.io$|localhost|127\.0\.0\.1/.test(location.hostname)&&!/^https:$/.test(location.protocol))return 'abre la app desde tu dirección de GitHub Pages, no como archivo';
+  if(/claude\.ai|claudeusercontent|anthropic/.test(location.hostname))return 'estás abriendo la app desde la vista previa del chat; ábrela desde tu dirección de GitHub Pages';
+  return 'Google bloqueó la conexión. En Apps Script revisa Implementar → Gestionar implementaciones: «Quién tiene acceso» debe ser «Cualquier usuario» (no «con cuenta de Google» ni «de tu organización»), y crea una versión nueva. Si el script está en una cuenta institucional (UC), créalo en tu Gmail personal';
+}
 const Sync={
   busy:false,again:false,timer:null,state:'idle',err:'',
   configured(){return !!(Store.settings.url&&Store.settings.token);},
   soon(delay=2500){if(!this.configured())return;clearTimeout(this.timer);this.timer=setTimeout(()=>this.run(false),delay);},
   async call(body){
-    const r=await fetch(Store.settings.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...body,token:Store.settings.token}),redirect:'follow'});
+    let r;
+    try{r=await fetch(Store.settings.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...body,token:Store.settings.token}),redirect:'follow'});}
+    catch(e){throw new Error(netMsg());}
     if(!r.ok)throw new Error('respuesta '+r.status);
     let j;try{j=await r.json();}catch(e){throw new Error('la dirección no corresponde a la app');}
     if(!j.ok)throw new Error(j.error||'error desconocido');
@@ -422,7 +431,9 @@ const Sync={
     }
   },
   async ping(url,token){
-    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'ping',token}),redirect:'follow'});
+    let r;
+    try{r=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'ping',token}),redirect:'follow'});}
+    catch(e){throw new Error(netMsg());}
     let j;try{j=await r.json();}catch(e){throw new Error('la dirección no responde como la app (¿termina en /exec?)');}
     if(!j.ok)throw new Error(j.error||'error');
     if(j.app!=='ecografias')throw new Error('esa dirección es de otra app');

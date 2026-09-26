@@ -1,7 +1,7 @@
 // Sube este número junto con "version" en version.json y APP_VERSION en index.html
-const VERSION = 'ecos-v3';
+const VERSION = 'ecos-v4';
 const CORE = ['./', './index.html', './xlsx.full.min.js', './manifest.webmanifest',
-              './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
+              './icon-192.png', './icon-512.png', './apple-touch-icon.png', './icon-maskable-512.png', './favicon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
